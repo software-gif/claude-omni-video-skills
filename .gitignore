@@ -5,3 +5,4 @@ out/
 runs/
 .cache/
 .DS_Store
+test/

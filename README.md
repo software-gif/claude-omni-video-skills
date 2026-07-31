@@ -182,20 +182,23 @@ steht in [`examples/README.md`](examples/README.md).
 
 **Die 0,13 $ pro Sekunde auf der fal-Modellseite sind nur der Ausgabe-Anteil.**
 Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den Clip, der
-hineingeht. Nachgemessen an einem 8-Sekunden-Clip in 1280×720, Kontostand vor
-und nach genau einem Lauf:
+hineingeht, und liegt damit darüber. Über 28 Läufe am Kontostand gemessen:
 
-> **1,71 USD** für einen 8-Sekunden-Edit — also **0,213 USD pro Sekunde**,
-> rund zwei Drittel über dem Listenwert.
+| Messung | Ergebnis |
+|---|---|
+| Vier 5-Sekunden-Edits | 2,92 $ gesamt → **0,146 $/s** |
+| 24 Läufe gemischt | 31,08 $ gesamt → **0,162 $/s** |
 
-Das gilt pro Variante, nicht pro Befehl:
+Als Faustwert also **~0,15 $ pro Sekunde**, rund 15 % über dem Listenwert.
+Einzelne Läufe streuen; eine Einzelmessung ergab 0,213 $/s und war ein
+Ausreißer. Das gilt pro Variante, nicht pro Befehl:
 
 | | |
 |---|---|
-| Ein Clip, eine Variante, 8 s | ~1,71 $ |
-| Derselbe Clip auf 5 s gekürzt | ~1,07 $ |
-| Vier Märkte aus einem 8-s-Dreh | ~6,82 $ |
-| Vier Märkte aus 5 s | ~4,26 $ |
+| Ein Clip, eine Variante, 5 s | ~0,75 $ |
+| Derselbe Clip in 8 s | ~1,20 $ |
+| Vier Märkte aus 5 s | ~3,00 $ |
+| Vier Märkte aus 8 s | ~4,80 $ |
 | Text-to-Video (`create`, 8 s) | ~1,04 $ (kein Input-Video) |
 
 **Der wirksamste Sparhebel ist die Schere, nicht das Modell.** Bezahlt wird

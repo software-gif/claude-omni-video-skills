@@ -34,12 +34,16 @@ ENDPOINT_EDIT = "google/gemini-omni-flash/edit"
 ENDPOINT_CREATE = "google/gemini-omni-flash"
 
 # Die fal-Modellseite nennt ~0,13 $ pro Sekunde 720p-Video. Das ist der
-# AUSGABE-Anteil. Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den
-# Clip, der hineingeht — gemessen an einem 8-Sekunden-Clip in 1280×720 kostet
-# ein Edit 1,71 $, also 0,213 $ pro Sekunde. Der Aufschlag hängt an der Größe
-# der Quelle: mehr Pixel und mehr Sekunden rein heißt mehr Input-Tokens.
-# Für Text-to-Video (kein Input-Video) bleibt der Richtwert der Modellseite.
-USD_PER_SECOND_EDIT = 0.213      # gemessen
+# AUSGABE-Anteil; ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den
+# Clip, der hineingeht, liegt also darüber.
+#
+# Gemessen über 28 Läufe am Kontostand:
+#   vier 5-Sekunden-Edits   2,92 $ gesamt  → 0,146 $/s
+#   24 Läufe gemischt      31,08 $ gesamt  → 0,162 $/s
+# Eine frühere Einzelmessung ergab 0,213 $/s — n=1 und vermutlich durch
+# überlappende Abrechnung verfälscht, deshalb verworfen. Einzelne Läufe
+# streuen; der Wert unten ist ein Mittelwert, keine Garantie.
+USD_PER_SECOND_EDIT = 0.15       # gemessen, gemittelt
 USD_PER_SECOND_CREATE = 0.13     # Angabe der Modellseite, nicht separat gemessen
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent

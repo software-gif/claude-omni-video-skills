@@ -115,9 +115,10 @@ mentioning a logo out of nowhere — see the next point.
 
 ## Notes
 
-- Cost, measured rather than quoted: an 8-second edit costs **1.71 USD**, i.e.
-  **0.213 USD per second** — the 0.13 USD/s on fal's model page is the output
-  share only. A shorter or smaller source is cheaper.
+- Cost, measured rather than quoted: about **0.15 USD per second** of clip
+  length, averaged over 28 runs. The 0.13 USD/s on fal's model page is the
+  output share only; an edit also pays input tokens for the clip going in.
+  Individual runs vary. A shorter source is cheaper.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one. 720p is the ceiling, so
   fine label text on a small object will not hold up.
