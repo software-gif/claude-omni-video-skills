@@ -79,6 +79,24 @@ Control und ist ein anderer Aufbau.
 
 Ausgabe ist immer 1280×720 bei 24 fps, mit Ton, in der Länge der Quelle.
 
+Und damit klar ist, wie wenig dahintersteckt — das ist der komplette Aufruf.
+Du fasst das nie an, `scripts/omni.py` erledigt Upload, Warteschlange,
+Download und Kontaktblatt drumherum:
+
+```python
+import fal_client
+
+result = fal_client.subscribe("google/gemini-omni-flash/edit", arguments={
+    "video_url": "https://.../clip.mp4",
+    "prompt": "Change only the background to a snowy alpine village at dusk. "
+              "Keep everything else the same.",
+})
+print(result["video"]["url"])
+```
+
+Der ganze Rest dieses Repos ist die Frage, **was** in diesem Prompt steht und
+**wie** du prüfst, was zurückkommt.
+
 ## Die vier Skills
 
 | Skill | Wofür | Die eine Variable |
