@@ -110,5 +110,6 @@ shipping a broken word.
   "BLEIB SMART" on the first attempt, in the same font, weight, colour and
   position, with nothing else in the frame touched. Treat that as the good
   case, not the guaranteed one.
-- fal documents the edit endpoint as unavailable in the EEA, UK and
-  Switzerland. It worked from Germany in our runs. See the README.
+- Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
+  allows editing model-generated ones. Calls routed through fal do not originate
+  in the EEA at all, which is why runs from Germany went through. See the README.

@@ -107,5 +107,6 @@ Short on purpose. Two things to avoid:
 - Output is 1280×720 at 24 fps, with audio, in the length of the source.
 - Angles that require inventing a lot of unseen geometry (a full 180° reverse)
   are the weakest case. Small to moderate reframes hold up best.
-- fal documents the edit endpoint as unavailable in the EEA, UK and
-  Switzerland. It worked from Germany in our runs. See the README.
+- Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
+  allows editing model-generated ones. Calls routed through fal do not originate
+  in the EEA at all, which is why runs from Germany went through. See the README.

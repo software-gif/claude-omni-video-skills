@@ -70,7 +70,9 @@ rough cost.
 
 ## Step 3 — Look at the result before reporting success
 
-Check, in this order:
+Every run writes a `…-compare.jpg` next to the video (source on top, result
+below); a colourway batch also writes `…-overview.jpg` with the whole range side
+by side. **Read those images** and check, in this order:
 
 1. **The right object changed.** The most common failure is the model
    restyling a neighbouring object, or the whole scene, instead of the one you
@@ -107,5 +109,6 @@ thing: use it for internal look-tests, not as a finished asset.
   the ceiling — fine label text on a small object will not hold up.
 - The edit endpoint is text-only: you cannot supply a swatch or a reference
   photo of the exact material. Describe it instead.
-- fal documents the edit endpoint as unavailable in the EEA, UK and
-  Switzerland. It worked from Germany in our runs. See the README.
+- Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
+  allows editing model-generated ones. Calls routed through fal do not originate
+  in the EEA at all, which is why runs from Germany went through. See the README.

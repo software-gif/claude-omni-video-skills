@@ -78,9 +78,13 @@ writes `…-overview.jpg` across all variants. **Read those images** and check:
    size. Background swaps are where identity drift shows up first.
 2. **Motion intact** — the camera move and the subject's movement are the ones
    from the source, not a new invention.
-3. **Lighting matches** — a subject lit for a bright studio pasted into a night
-   street reads as fake. If the light on the subject did not follow the new
-   scene, say so.
+3. **Lighting** — read this one knowing the trade the recipe makes. Because the
+   prompt locks the people and products, the light *on them* does not adapt to
+   the new scene. That is deliberate: identity stability was worth more than
+   perfect integration. So if a subject lit for hard midday sun ends up in a
+   night street and reads as pasted in, the run did not fail — the scene was a
+   bad match for this clip. Pick a scene with similar light and time of day, and
+   tell the user that is why.
 4. **Nothing new appeared** — no extra props, no invented logo, no text. Check
    this against section 7 of the brand file if there is one.
 
@@ -119,6 +123,7 @@ and keep it to one or two sentences.
   does not upscale.
 - The edit endpoint takes **text only** — you cannot hand it a reference photo
   of the exact location. For that you need a reference-based model.
-- fal documents the edit endpoint as unavailable in the EEA, UK and
-  Switzerland. It worked from Germany in our runs. If you do hit the block, it
-  is not a bug in the script — see the README.
+- Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
+  allows editing model-generated ones. Calls routed through fal do not originate
+  in the EEA at all, which is why runs from Germany went through. If you do hit
+  the block, it is not a bug in the script — see the README.
