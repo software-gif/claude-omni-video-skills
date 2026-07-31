@@ -11,6 +11,14 @@ sample needed just to see how a colourway reads on screen.
 
 Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
 
+## Step 0 — Read the brand file
+
+If `brand/brand.md` exists, it answers both variables for you. Section 2 gives
+the exact phrase to pass as `--object` (the "So heißt es im Prompt" column) —
+use it verbatim, it was chosen because the model reliably finds that object.
+Section 3 lists the colourways worth testing. Section 7 says what must not
+appear.
+
 ## Step 1 — Get the clip, the object and the target
 
 **The source must be a file path on disk or a public URL.**
@@ -42,10 +50,23 @@ python3 scripts/omni.py transform-object \
   --out ./out
 ```
 
-One finish per call. For a colourway range, run the same command per colour —
-that also keeps everything else identical between variants, which is the point.
+**For a colourway range, repeat `--to`.** Everything else stays identical
+between variants, which is exactly what makes them comparable:
 
-`--runs 2` for a second take. `--dry-run` to show the prompt and rough cost.
+```bash
+python3 scripts/omni.py transform-object --input clip.mp4 \
+  --object "the black insulated bottle" \
+  --to "brushed stainless steel" \
+  --to "deep forest green" \
+  --to "sand beige with a black lid" \
+  --out ./out
+```
+
+The overview strip the script writes at the end is the deliverable here — it is
+the range on one page.
+
+`--runs 2` for a second take of each finish. `--dry-run` to show the plan and
+rough cost.
 
 ## Step 3 — Look at the result before reporting success
 

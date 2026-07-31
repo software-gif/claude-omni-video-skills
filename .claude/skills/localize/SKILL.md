@@ -14,6 +14,12 @@ edit. It touches **on-screen text only** — the spoken voiceover stays as it is
 
 Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
 
+## Step 0 — Read the brand file
+
+If `brand/brand.md` exists, section 5 gives you the target languages and the
+exact `--keep` string. Use them rather than asking — that section exists so
+nobody has to remember that the wordmark must not be translated.
+
 ## Step 1 — Get the clip and the target language
 
 **The source must be a file path on disk or a public URL.**
@@ -40,10 +46,17 @@ python3 scripts/omni.py localize \
   --out ./out
 ```
 
-One language per call. For a market set, loop the command per language.
+**For a market set, repeat `--lang`:**
 
-`--runs 2` for a second take — text is exactly where the model varies most.
-`--dry-run` to show the prompt and rough cost.
+```bash
+python3 scripts/omni.py localize --input clip.mp4 \
+  --lang German --lang French --lang "Brazilian Portuguese" \
+  --keep "the brand name" --out ./out
+```
+
+`--runs 2` for a second take of each language — text is exactly where the model
+varies most, so this is the skill where a second take pays off most often.
+`--dry-run` to show the plan and rough cost.
 
 ## Step 3 — Read the text in the output. Every word.
 
@@ -63,6 +76,11 @@ at full size, and check:
 5. **Text is stable across the clip** — it should not flicker, morph or
    re-spell itself between frames. Scrub, do not just look at frame one.
 6. **Nothing else changed.**
+
+In a batch, do this **per language**. A clean German render says nothing about
+the French one, and the language you cannot read yourself is exactly the one
+that will ship with a typo. If you are not confident in a language, say so and
+tell the user to have a native speaker check that variant.
 
 If any of that fails, re-run. If it fails twice the same way, the honest answer
 is to set that headline in your layout tool instead — say that rather than

@@ -11,6 +11,12 @@ edit-ready sequence instead of one static angle.
 
 Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
 
+## Step 0 — Read the brand file
+
+If `brand/brand.md` exists, read section 6 (talent) and section 7 (what must
+never appear). A reframe is one of the two places identity drifts, so know what
+"unchanged" means for this brand before you look at the result.
+
 ## Step 1 — Get the clip and the angle
 
 **The source must be a file path on disk or a public URL.**
@@ -38,11 +44,21 @@ its own call.
 
 ```bash
 python3 scripts/omni.py change-angle --input clip.mp4 --angle close-up --out ./out
-python3 scripts/omni.py change-angle --input clip.mp4 --angle wide     --out ./out
 ```
 
-`--runs 2` for a second take of the same angle. `--dry-run` to show the prompt
-and rough cost first.
+**For a coverage set, repeat `--angle`** — that is the point of this skill.
+One command, one upload, an overview strip at the end:
+
+```bash
+python3 scripts/omni.py change-angle --input clip.mp4 \
+  --angle wide --angle close-up --angle over-the-shoulder --out ./out
+```
+
+`--to` takes free-text framing and can be mixed in:
+`--angle wide --to "a three-quarter view from the front left, chest height"`.
+
+`--runs 2` for a second take of *each* angle. `--dry-run` to show the plan and
+rough cost first.
 
 ## Step 3 — Look at the result before reporting success
 
@@ -62,6 +78,11 @@ Read it, and check:
 4. **The subject survived the reframe** — faces and product labels are where a
    new angle breaks down, because the model has to invent what the original
    camera never saw.
+
+In a batch, check every angle against the source, and check the angles against
+*each other*: a set that does not share one continuous look will not cut into a
+sequence, however good each shot is on its own. The overview strip is where
+that shows up.
 
 Be honest here. A generated angle is an interpretation, not a second camera —
 if it does not match, report that rather than shipping it as coverage.

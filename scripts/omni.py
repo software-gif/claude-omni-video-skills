@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-omni.py — ein Video rein, ein verändertes Video raus.
+omni.py — ein Clip rein, viele Varianten raus.
 
 Ruft Gemini Omni Flash über fal.ai auf. Jede Skill in .claude/skills/ ist ein
 Wrapper um genau ein Unterkommando hier.
 
-    python3 scripts/omni.py swap-background  --input clip.mp4 --to "a rainy Tokyo street at night"
-    python3 scripts/omni.py change-angle     --input clip.mp4 --angle close-up
+    python3 scripts/omni.py swap-background  --input clip.mp4 --to "a rainy Tokyo street" --to "an alpine village"
+    python3 scripts/omni.py change-angle     --input clip.mp4 --angle wide --angle close-up
     python3 scripts/omni.py transform-object --input clip.mp4 --object "the bottle" --to "brushed chrome"
-    python3 scripts/omni.py localize         --input clip.mp4 --lang German --keep "the brand name"
+    python3 scripts/omni.py localize         --input clip.mp4 --lang German --lang French
     python3 scripts/omni.py raw              --input clip.mp4 --prompt "..."
     python3 scripts/omni.py create           --prompt "..." --aspect 9:16 --duration 8
+
+--to, --angle und --lang sind wiederholbar. Jede Angabe ist ein eigener
+Modellaufruf; das Skript rendert sie nacheinander und legt am Ende einen
+Überblicksstreifen über alle Varianten an.
 
 Env: FAL_KEY (https://fal.ai/dashboard/keys) — in .env neben dem Repo oder exportiert.
 """
@@ -46,7 +50,11 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 #   2. ein kurzer Lock-Satz gegen die für diesen Job typische Drift
 #   3. "Keep everything else the same."  (von fal empfohlen, wirkt messbar)
 #
-# Nichts hier ergänzen, ohne es zu testen: Jeder zusätzliche Satz ist eine
+# Der Markenkontext gehört ausdrücklich NICHT hier hinein. Er steuert, welchen
+# Text Claude in --to schreibt, nicht wie lang der Prompt wird. Siehe
+# brand/README.md und die "Prompt rules"-Abschnitte in den SKILL.md-Dateien.
+#
+# Nichts hier ergänzen, ohne es zu messen: Jeder zusätzliche Satz ist eine
 # weitere Erlaubnis, etwas umzubauen. Die gemessenen Grenzen stehen im README.
 # --------------------------------------------------------------------------
 
@@ -63,49 +71,53 @@ ANGLES = {
 }
 
 
-def prompt_swap_background(args):
+def prompt_swap_background(scene):
     return (
-        f"Change only the background to {args.to}. "
+        f"Change only the background to {scene}. "
         f"Do not change the people or products in the shot: same faces, same clothing, "
         f"same colours, same position in the frame, same movement. {KEEP}"
     )
 
 
-def prompt_change_angle(args):
-    shot = args.to or ANGLES[args.angle]
+def prompt_change_angle(shot):
     return (
         f"Re-frame this shot as {shot}. "
         f"Keep the same scene, the same subject, the same moment and the same lighting. {KEEP}"
     )
 
 
-def prompt_transform_object(args):
+def prompt_transform_object(obj, target):
     return (
-        f"Change {args.object} to {args.to}. "
+        f"Change {obj} to {target}. "
         f"Keep its shape, size and position identical, and keep the way it moves in the shot. {KEEP}"
     )
 
 
-def prompt_localize(args):
-    keep = f" Leave {args.keep} in the original language." if args.keep else ""
+def prompt_localize(lang, keep=None):
+    tail = f" Leave {keep} in the original language." if keep else ""
     return (
-        f"Translate all on-screen text, captions, labels and signage into {args.lang}. "
-        f"Keep the same fonts, colours, sizes and positions.{keep} {KEEP}"
+        f"Translate all on-screen text, captions, labels and signage into {lang}. "
+        f"Keep the same fonts, colours, sizes and positions.{tail} {KEEP}"
     )
 
 
-def prompt_raw(args):
-    return args.prompt
-
-
-RECIPES = {
-    "swap-background": prompt_swap_background,
-    "change-angle": prompt_change_angle,
-    "transform-object": prompt_transform_object,
-    "localize": prompt_localize,
-    "raw": prompt_raw,
-    "create": prompt_raw,
-}
+def plan(args):
+    """Was gerendert werden soll, als Liste von (Kurzname, Prompt)."""
+    if args.command == "swap-background":
+        return [(slugify(scene, 32), prompt_swap_background(scene)) for scene in args.to]
+    if args.command == "change-angle":
+        shots = [(key, ANGLES[key]) for key in (args.angle or [])]
+        shots += [(slugify(free, 32), free) for free in (args.to or [])]
+        return [(slug, prompt_change_angle(shot)) for slug, shot in shots]
+    if args.command == "transform-object":
+        return [(slugify(t, 32), prompt_transform_object(args.object, t)) for t in args.to]
+    if args.command == "localize":
+        return [(slugify(lang, 24), prompt_localize(lang, args.keep)) for lang in args.lang]
+    if args.command == "raw":
+        return [("raw", args.prompt)]
+    if args.command == "create":
+        return [(slugify(args.prompt, 32), args.prompt)]
+    raise ValueError(args.command)
 
 
 # --------------------------------------------------------------------------
@@ -152,7 +164,8 @@ def resolve_source(fal_client, source, work_dir):
 
     # Denselben Clip nicht bei jedem Lauf neu hochladen. fal antwortet auf zu
     # viele Upload-Tokens hintereinander mit 403; ein Cache pro Datei und
-    # Änderungszeit spart Zeit, Bandbreite und genau diesen Fehler.
+    # Änderungszeit spart Zeit, Bandbreite und genau diesen Fehler. Bei einem
+    # Batch über fünf Märkte wird so einmal hochgeladen statt fünfmal.
     stat = path.stat()
     fingerprint = f"{path.resolve()}::{stat.st_size}::{int(stat.st_mtime)}"
     cache_dir = REPO_ROOT / ".cache"
@@ -196,12 +209,17 @@ def download(url, target):
     return target
 
 
-# --- Kontaktblatt ---------------------------------------------------------
+# --- Kontaktblätter -------------------------------------------------------
 #
-# Claude kann kein Video abspielen, aber ein JPG lesen. Nach jedem Lauf legt
-# das Skript deshalb ein Vergleichsbild an: obere Reihe Quelle, untere Reihe
-# Ergebnis, jeweils drei Zeitpunkte. Das ist die Grundlage für Schritt 3 in
-# jeder Skill. Braucht ffmpeg; fehlt es, wird das Blatt still übersprungen.
+# Claude kann kein Video abspielen, aber ein JPG lesen. Deshalb schreibt jeder
+# Lauf ein Vergleichsbild (Quelle oben, Ergebnis unten) und ein Batch am Ende
+# einen Überblicksstreifen über alle Varianten. Das ist die Grundlage dafür,
+# dass der Prüfschritt in jeder SKILL.md überhaupt ausführbar ist.
+# Braucht ffmpeg; fehlt es, wird still übersprungen.
+
+
+def _has_ffmpeg():
+    return bool(shutil.which("ffmpeg") and shutil.which("ffprobe"))
 
 
 def _duration(path):
@@ -218,56 +236,109 @@ def _duration(path):
 
 def _grab(path, seconds, target, height=360):
     subprocess.run(
-        ["ffmpeg", "-v", "error", "-y", "-ss", f"{seconds:.2f}", "-i", str(path),
+        ["ffmpeg", "-v", "error", "-y", "-ss", f"{max(seconds, 0):.2f}", "-i", str(path),
          "-frames:v", "1", "-vf", f"scale=-2:{height}", str(target)],
         check=True, timeout=60,
     )
 
 
-def contact_sheet(source, result, target, work_dir):
-    if not (shutil.which("ffmpeg") and shutil.which("ffprobe")):
+def _width(path):
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=width", "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True, timeout=30,
+    )
+    return int(out.stdout.strip().splitlines()[0])
+
+
+def _stack(frames, target, per_row, work_dir):
+    """Frames zu einem Raster montieren. per_row Spalten, Reihen untereinander.
+
+    Reihenweise in zwei Durchgängen statt in einem großen Filtergraph: Bei einer
+    unvollständigen letzten Reihe (5 Kacheln auf 3 Spalten) sind die Reihen
+    verschieden breit, und vstack verlangt gleiche Breite. Die kurze Reihe wird
+    deshalb weiß aufgefüllt.
+    """
+    rows = []
+    for start in range(0, len(frames), per_row):
+        chunk = frames[start:start + per_row]
+        row_path = work_dir / f"row-{target.stem}-{len(rows)}.jpg"
+        if len(chunk) == 1:
+            shutil.copyfile(chunk[0], row_path)
+        else:
+            args = ["ffmpeg", "-v", "error", "-y"]
+            for frame in chunk:
+                args += ["-i", str(frame)]
+            args += ["-filter_complex",
+                     "".join(f"[{i}]" for i in range(len(chunk))) + f"hstack={len(chunk)}",
+                     "-q:v", "3", str(row_path)]
+            subprocess.run(args, check=True, timeout=180)
+        rows.append(row_path)
+
+    if len(rows) == 1:
+        shutil.copyfile(rows[0], target)
+        return target
+
+    widest = max(_width(row) for row in rows)
+    args = ["ffmpeg", "-v", "error", "-y"]
+    for row in rows:
+        args += ["-i", str(row)]
+    chain = [f"[{i}]pad={widest}:ih:(ow-iw)/2:0:white[p{i}]" for i in range(len(rows))]
+    filt = ";".join(chain) + ";" + "".join(f"[p{i}]" for i in range(len(rows))) \
+        + f"vstack={len(rows)}"
+    args += ["-filter_complex", filt, "-q:v", "3", str(target)]
+    subprocess.run(args, check=True, timeout=180)
+    return target
+
+
+def contact_sheet(source, result, target, work_dir, tag="s"):
+    """Quelle oben, Ergebnis unten, je drei Zeitpunkte."""
+    if not _has_ffmpeg():
         return None
     length = _duration(result)
     if not length:
         return None
     stamps = [length * 0.05, length * 0.5, length * 0.93]
-    rows, inputs = [], []
+    frames = []
     try:
-        for label, clip in (("s", source), ("o", result)):
+        for role, clip in (("a", source), ("b", result)):
             if clip is None or not pathlib.Path(clip).exists():
                 continue
-            frames = []
+            clip_len = _duration(clip) or length
             for index, second in enumerate(stamps):
-                frame = work_dir / f"sheet-{label}{index}.jpg"
-                _grab(clip, min(second, (_duration(clip) or length) - 0.05), frame)
+                frame = work_dir / f"sheet-{tag}{role}{index}.jpg"
+                _grab(clip, min(second, clip_len - 0.05), frame)
                 frames.append(frame)
-            rows.append(frames)
-        if not rows:
+        if not frames:
             return None
-        for row in rows:
-            inputs.extend(row)
-        args = ["ffmpeg", "-v", "error", "-y"]
-        for frame in inputs:
-            args += ["-i", str(frame)]
-        parts, labels = [], []
-        for row_index in range(len(rows)):
-            base = row_index * 3
-            parts.append(f"[{base}][{base + 1}][{base + 2}]hstack=3[r{row_index}]")
-            labels.append(f"[r{row_index}]")
-        chain = ";".join(parts)
-        if len(rows) > 1:
-            chain += ";" + "".join(labels) + f"vstack={len(rows)}"
-        else:
-            chain = chain.replace("[r0]", "")
-        args += ["-filter_complex", chain, "-q:v", "3", str(target)]
-        subprocess.run(args, check=True, timeout=120)
-        return target
-    except Exception:  # noqa: BLE001 — das Kontaktblatt ist Komfort, kein Muss
+        return _stack(frames, target, 3, work_dir)
+    except Exception:  # noqa: BLE001 — Komfort, kein Muss
         return None
 
 
-def run_once(fal_client, endpoint, arguments, index, total):
-    label = f"[{index}/{total}] " if total > 1 else ""
+def overview_strip(source, outputs, target, work_dir):
+    """Quelle plus alle Varianten nebeneinander, jeweils Bildmitte."""
+    if not _has_ffmpeg() or len(outputs) < 2:
+        return None
+    clips = ([source] if source and pathlib.Path(source).exists() else []) + list(outputs)
+    frames = []
+    try:
+        for index, clip in enumerate(clips):
+            length = _duration(clip)
+            if not length:
+                continue
+            frame = work_dir / f"overview-{index}.jpg"
+            _grab(clip, length * 0.5, frame)
+            frames.append(frame)
+        if len(frames) < 2:
+            return None
+        per_row = len(frames) if len(frames) <= 3 else (len(frames) + 1) // 2
+        return _stack(frames, target, per_row, work_dir)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def run_once(fal_client, endpoint, arguments, label):
     print(f"  {label}Omni läuft …", flush=True)
     started = time.time()
     handle = fal_client.submit(endpoint, arguments=arguments)
@@ -294,31 +365,37 @@ def build_parser():
         if needs_input:
             sp.add_argument("--input", required=True, help="Lokale Videodatei oder öffentliche URL")
         sp.add_argument("--out", default="./out", help="Zielordner (Default ./out)")
-        sp.add_argument("--name", help="Basisname der Ausgabedatei")
-        sp.add_argument("--runs", type=int, default=1, help="Anzahl Generierungen (Default 1)")
-        sp.add_argument("--dry-run", action="store_true", help="Nur den Prompt zeigen")
+        sp.add_argument("--name", help="Basisname der Ausgabedateien")
+        sp.add_argument("--runs", type=int, default=1, help="Generierungen pro Variante (Default 1)")
+        sp.add_argument("--dry-run", action="store_true", help="Nur den Plan zeigen")
         sp.add_argument("--json", action="store_true", help="Ergebnis als JSON auf stdout")
         return sp
 
     sp = common(sub.add_parser("swap-background", help="Hintergrund tauschen"))
-    sp.add_argument("--to", required=True, help='Neue Szene, z. B. "a rainy Tokyo street at night"')
+    sp.add_argument("--to", action="append", required=True, metavar="SZENE",
+                    help='Neue Szene. Mehrfach angeben für mehrere Märkte.')
 
     sp = common(sub.add_parser("change-angle", help="Kameraperspektive ändern"))
-    sp.add_argument("--angle", choices=sorted(ANGLES), help="Vordefinierte Perspektive")
-    sp.add_argument("--to", help="Freitext-Perspektive statt --angle")
+    sp.add_argument("--angle", action="append", choices=sorted(ANGLES),
+                    help="Vordefinierte Perspektive. Mehrfach angeben für eine Sequenz.")
+    sp.add_argument("--to", action="append", metavar="PERSPEKTIVE",
+                    help="Freitext-Perspektive, zusätzlich oder statt --angle.")
 
     sp = common(sub.add_parser("transform-object", help="Material, Farbe oder Finish ändern"))
     sp.add_argument("--object", required=True, help='Was, z. B. "the sneaker"')
-    sp.add_argument("--to", required=True, help='Wohin, z. B. "brushed chrome"')
+    sp.add_argument("--to", action="append", required=True, metavar="MATERIAL",
+                    help="Zielmaterial. Mehrfach angeben für eine Colourway-Reihe.")
 
     sp = common(sub.add_parser("localize", help="On-Screen-Text übersetzen"))
-    sp.add_argument("--lang", required=True, help='Zielsprache, z. B. "German"')
+    sp.add_argument("--lang", action="append", required=True, metavar="SPRACHE",
+                    help="Zielsprache. Mehrfach angeben für mehrere Märkte.")
     sp.add_argument("--keep", help='Was unübersetzt bleibt, z. B. "the brand name"')
 
     sp = common(sub.add_parser("raw", help="Eigene Anweisung, ohne Rezept"))
     sp.add_argument("--prompt", required=True)
 
-    sp = common(sub.add_parser("create", help="Testclip aus Text erzeugen (kein Input nötig)"), needs_input=False)
+    sp = common(sub.add_parser("create", help="Testclip aus Text erzeugen (kein Input nötig)"),
+                needs_input=False)
     sp.add_argument("--prompt", required=True)
     sp.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"])
     sp.add_argument("--duration", type=int, default=8, help="3 bis 10 Sekunden (Default 8)")
@@ -330,20 +407,27 @@ def main():
     args = build_parser().parse_args()
 
     if args.command == "change-angle" and not (args.angle or args.to):
-        sys.exit("change-angle braucht --angle oder --to")
+        sys.exit("change-angle braucht mindestens ein --angle oder --to")
     if args.command == "create" and not 3 <= args.duration <= 10:
         sys.exit("--duration muss zwischen 3 und 10 Sekunden liegen")
 
-    prompt = RECIPES[args.command](args)
+    jobs = plan(args)
+    total = len(jobs) * args.runs
 
-    print(f"\n  {args.command}")
-    print(f"  Prompt: {prompt}\n")
+    print(f"\n  {args.command} — {len(jobs)} Variante(n)"
+          + (f", {args.runs} Generierungen je Variante" if args.runs > 1 else ""))
+    for slug, prompt in jobs:
+        print(f"\n  [{slug}]\n  {prompt}")
+
+    seconds = args.duration if args.command == "create" else 8
+    print(f"\n  {total} Modellaufruf(e), grob ${USD_PER_SECOND * seconds * total:.2f} "
+          f"bei {seconds} s Video.")
 
     if args.dry_run:
-        seconds = args.duration if args.command == "create" else 8
-        print(f"  Dry run. {args.runs} Generierung(en), grob "
-              f"${USD_PER_SECOND * seconds * args.runs:.2f} bei {seconds} s Video.")
+        print("  Dry run, es wurde nichts ausgegeben.")
         return
+    if not _has_ffmpeg():
+        print("  Hinweis: ffmpeg fehlt, es werden keine Kontaktblätter geschrieben.")
 
     if not load_key():
         sys.exit("FAL_KEY fehlt. In .env eintragen: FAL_KEY=…  (https://fal.ai/dashboard/keys)")
@@ -358,61 +442,74 @@ def main():
     work_dir.mkdir(parents=True, exist_ok=True)
 
     if args.command == "create":
-        endpoint = ENDPOINT_CREATE
-        arguments = {"prompt": prompt, "aspect_ratio": args.aspect, "duration": args.duration}
-        source_local = None
-        source_url = None
-        stem = args.name or f"clip-{slugify(prompt, 32)}"
+        endpoint, source_url, source_local = ENDPOINT_CREATE, None, None
     else:
         endpoint = ENDPOINT_EDIT
         source_url, source_local = resolve_source(fal_client, args.input, work_dir)
-        arguments = {"prompt": prompt, "video_url": source_url}
-        stem = args.name or f"{args.command}-{slugify(getattr(args, 'to', None) or getattr(args, 'lang', '') or 'run')}"
 
-    written = []
-    for index in range(1, args.runs + 1):
-        suffix = "" if args.runs == 1 else f"-{index}"
-        try:
-            video, took, request_id = run_once(fal_client, endpoint, arguments, index, args.runs)
-        except Exception as exc:  # noqa: BLE001 — die Meldung ist für den Nutzer, nicht fürs Log
-            message = str(exc)
-            print(f"  Fehlgeschlagen: {type(exc).__name__}: {message}")
-            if "not available" in message.lower() or "region" in message.lower():
-                print("  Hinweis: Google sperrt den Video-Edit teilweise in EU/UK/CH. "
-                      "Siehe README, Abschnitt Grenzen.")
-            continue
+    base = args.name or args.command
+    written, manifest = [], []
+    step = 0
 
-        target = download(video["url"], out_dir / f"{stem}{suffix}.mp4")
-        written.append(str(target))
-        print(f"  → {target}  ({video.get('file_size', 0) / 1_048_576:.1f} MB, {took:.0f}s)")
+    for slug, prompt in jobs:
+        for run in range(1, args.runs + 1):
+            step += 1
+            label = f"[{step}/{total}] " if total > 1 else ""
+            stem = args.name if (args.name and len(jobs) == 1) else f"{base}-{slug}"
+            if args.runs > 1:
+                stem = f"{stem}-{run}"
 
-        sheet = contact_sheet(source_local, target, out_dir / f"{stem}{suffix}-compare.jpg", work_dir)
-        if sheet:
-            print(f"  → {sheet}  (oben Quelle, unten Ergebnis)")
+            if args.command == "create":
+                arguments = {"prompt": prompt, "aspect_ratio": args.aspect,
+                             "duration": args.duration}
+            else:
+                arguments = {"prompt": prompt, "video_url": source_url}
 
-        (out_dir / f"{stem}{suffix}.json").write_text(
-            json.dumps(
-                {
-                    "command": args.command,
-                    "prompt": prompt,
-                    "endpoint": endpoint,
-                    "request_id": request_id,
-                    "source": str(source_local) if source_local else source_url,
-                    "source_url": source_url,
-                    "output": str(target),
-                    "compare": str(sheet) if sheet else None,
-                    "seconds": round(took, 1),
-                },
-                indent=2,
-                ensure_ascii=False,
-            )
-        )
+            try:
+                video, took, request_id = run_once(fal_client, endpoint, arguments, label)
+            except Exception as exc:  # noqa: BLE001 — Meldung für den Nutzer, nicht fürs Log
+                message = str(exc)
+                print(f"  {label}Fehlgeschlagen ({slug}): {type(exc).__name__}: {message}")
+                if "not available" in message.lower() or "region" in message.lower():
+                    print("  Hinweis: Google sperrt den Video-Edit hochgeladener Clips in "
+                          "EWR/UK/CH. Siehe README, Abschnitt Grenzen.")
+                continue
+
+            target = download(video["url"], out_dir / f"{stem}.mp4")
+            written.append(target)
+            print(f"  {label}→ {target}  ({video.get('file_size', 0) / 1_048_576:.1f} MB, {took:.0f}s)")
+
+            sheet = contact_sheet(source_local, target, out_dir / f"{stem}-compare.jpg",
+                                  work_dir, tag=f"{step}")
+            if sheet:
+                print(f"  {label}→ {sheet}  (oben Quelle, unten Ergebnis)")
+
+            entry = {
+                "command": args.command, "variant": slug, "prompt": prompt,
+                "endpoint": endpoint, "request_id": request_id,
+                "source": str(source_local) if source_local else source_url,
+                "source_url": source_url, "output": str(target),
+                "compare": str(sheet) if sheet else None, "seconds": round(took, 1),
+            }
+            manifest.append(entry)
+            (out_dir / f"{stem}.json").write_text(
+                json.dumps(entry, indent=2, ensure_ascii=False))
 
     if not written:
         sys.exit(1)
 
+    if len(written) > 1:
+        strip = overview_strip(source_local, written, out_dir / f"{base}-overview.jpg", work_dir)
+        if strip:
+            print(f"\n  → {strip}  (Quelle plus alle Varianten)")
+        (out_dir / f"{base}-batch.json").write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False))
+
+    print(f"\n  {len(written)} von {total} Aufruf(en) erfolgreich.")
+
     if args.json:
-        print(json.dumps({"prompt": prompt, "outputs": written}, ensure_ascii=False))
+        print(json.dumps({"outputs": [str(p) for p in written], "runs": manifest},
+                         ensure_ascii=False))
 
 
 if __name__ == "__main__":

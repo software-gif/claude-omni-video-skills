@@ -11,6 +11,16 @@ motion and framing stay where they were.
 
 Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
 
+## Step 0 — Read the brand file
+
+If `brand/brand.md` exists, read it first. Section 4 lists the scenes that suit
+the brand and the ones that do not; section 6 describes the talent that has to
+survive the swap; section 7 lists what must never appear. Propose scenes from
+that list rather than inventing your own, and say which entry you used.
+
+No brand file? Carry on and ask the user directly — but mention once that
+filling in `brand/brand.md` means not having to answer this every time.
+
 ## Step 1 — Get the clip and the new scene
 
 **The source must be a file path on disk or a public URL.** The script cannot
@@ -39,16 +49,30 @@ python3 scripts/omni.py swap-background \
   --out ./out
 ```
 
-For a set of market variants, run one call per scene rather than asking for
-several at once — one instruction per call is the whole point of this endpoint.
+**For a market set, repeat `--to`.** Each one is its own model call — the
+endpoint takes exactly one instruction — but the script handles the sequence,
+uploads the clip once instead of once per scene, and writes an overview strip
+across all variants at the end:
 
-`--runs 2` generates two takes of the same instruction. Use it when the first
-result drifts; the model varies between attempts. `--dry-run` shows the prompt
-and the rough cost without spending anything.
+```bash
+python3 scripts/omni.py swap-background --input clip.mp4 \
+  --to "a rainy Tokyo side street at night" \
+  --to "a snowy alpine village at dusk" \
+  --to "a Miami boardwalk at golden hour" \
+  --out ./out
+```
+
+Always show the user `--dry-run` output first when the batch is larger than
+about three scenes — that is real money per variant.
+
+`--runs 2` generates two takes of *each* scene. Use it when a result drifts;
+the model varies between attempts.
 
 ## Step 3 — Look at the result before reporting success
 
-Download links and file sizes prove nothing. Read the output file and check:
+Download links and file sizes prove nothing. Every run writes a
+`…-compare.jpg` next to the video (source on top, result below); a batch also
+writes `…-overview.jpg` across all variants. **Read those images** and check:
 
 1. **Subject unchanged** — same person or product, same position in frame, same
    size. Background swaps are where identity drift shows up first.
@@ -57,7 +81,11 @@ Download links and file sizes prove nothing. Read the output file and check:
 3. **Lighting matches** — a subject lit for a bright studio pasted into a night
    street reads as fake. If the light on the subject did not follow the new
    scene, say so.
-4. **Nothing new appeared** — no extra props, no invented logo, no text.
+4. **Nothing new appeared** — no extra props, no invented logo, no text. Check
+   this against section 7 of the brand file if there is one.
+
+In a batch, check **every** variant. One good scene does not vouch for the
+others, and the overview strip makes an outlier easy to spot.
 
 If a run fails, re-run it before rewriting the prompt — the model varies.
 If two runs fail the same way, make the scene description more specific about
