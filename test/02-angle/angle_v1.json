@@ -1,0 +1,12 @@
+{
+  "command": "change-angle",
+  "variant": "over-the-shoulder",
+  "prompt": "Re-frame this shot as an over-the-shoulder shot from behind the main subject. Keep the same subject, action, wardrobe, lighting and setting. Keep everything else the same.",
+  "endpoint": "google/gemini-omni-flash/edit",
+  "request_id": "019fb999-3fd0-75e1-9c44-51b88722b700",
+  "source": "test/quelle-5s.mp4",
+  "source_url": "https://v3b.fal.media/files/b/0aa47ecd/4qq7JFFKHynQ59zXS3k9m_quelle-5s.mp4",
+  "output": "test/02-angle/angle_v1.mp4",
+  "compare": "test/02-angle/angle_v1-compare.jpg",
+  "seconds": 57.3
+}

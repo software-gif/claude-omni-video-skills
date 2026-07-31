@@ -1,0 +1,12 @@
+{
+  "command": "swap-background",
+  "variant": "a-rainy-tokyo-side-street-at-nig",
+  "prompt": "Change only the background to a rainy Tokyo side street at night with neon reflections on wet asphalt. Do not change the people or products in the shot: same faces, same clothing, same colours, same position in the frame, same action and movement. Keep everything else the same.",
+  "endpoint": "google/gemini-omni-flash/edit",
+  "request_id": "019fb999-3e3d-74f3-9254-6850acb6dbff",
+  "source": "test/quelle-5s.mp4",
+  "source_url": "https://v3b.fal.media/files/b/0aa47ecd/4qq7JFFKHynQ59zXS3k9m_quelle-5s.mp4",
+  "output": "test/01-swap/swap_v1.mp4",
+  "compare": "test/01-swap/swap_v1-compare.jpg",
+  "seconds": 62.5
+}

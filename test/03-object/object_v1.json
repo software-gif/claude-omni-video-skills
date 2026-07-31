@@ -1,0 +1,12 @@
+{
+  "command": "transform-object",
+  "variant": "brushed-stainless-steel",
+  "prompt": "Change the black water bottle to brushed stainless steel. Keep its shape, position, label, branding and motion the same. Keep everything else in the scene the same.",
+  "endpoint": "google/gemini-omni-flash/edit",
+  "request_id": "019fb999-4b85-70a0-afb1-57d0dfc56a8b",
+  "source": "test/quelle-5s.mp4",
+  "source_url": "https://v3b.fal.media/files/b/0aa47ecd/4qq7JFFKHynQ59zXS3k9m_quelle-5s.mp4",
+  "output": "test/03-object/object_v1.mp4",
+  "compare": "test/03-object/object_v1-compare.jpg",
+  "seconds": 73.5
+}

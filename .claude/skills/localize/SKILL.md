@@ -73,9 +73,16 @@ at full size, and check:
 4. **Layout held** — same font, same colour, same position, same size
    relationship. Longer target languages (German, French) push lines wider;
    check nothing runs off the frame or overlaps.
-5. **Text is stable across the clip** — it should not flicker, morph or
-   re-spell itself between frames. Scrub, do not just look at frame one.
-6. **Nothing else changed.**
+5. **The very first frame is already translated.** In one run out of five the
+   model crossfaded instead of swapping: the opening showed the original
+   English, both languages ghosted over each other at around 0.3 s, and only
+   from ~0.5 s on was the translation clean. An ad whose first frames are in
+   the wrong language is a discard. The leftmost tile of the contact sheet is
+   sampled early enough to catch this — it is the tile people skip.
+   Fix: re-run, or trim the first half second off the output.
+6. **Text is stable across the rest of the clip** — it should not flicker,
+   morph or re-spell itself between frames.
+7. **Nothing else changed.**
 
 In a batch, do this **per language**. A clean German render says nothing about
 the French one, and the language you cannot read yourself is exactly the one

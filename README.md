@@ -248,8 +248,14 @@ Kameramaterial, quer- und hochformatig, einzeln und im Batch.
   stand die Headline durchgehend. Das erste Bild sieht in beiden Fällen gut aus,
   deshalb bleibt der Blick auf Mitte und Ende Teil der Prüfung.
 - **Übersetzungen schwanken zwischen Läufen.** Dasselbe „STAY SHARP" wurde
-  einmal „BLEIB SMART" und einmal „BLEIBE SCHARF" — beides korrekt, aber wenn
+  „BLEIB SMART", „BLEIBE SCHARF" und „BLEIB WACH" — alles korrekt, aber wenn
   eine bestimmte Formulierung stehen muss, prüfen und gegebenenfalls wiederholen.
+- **Der Textwechsel kann verzögert einsetzen.** In einem von fünf Läufen hat das
+  Modell übergeblendet statt getauscht: Anfang noch Englisch, bei ~0,3 s beide
+  Sprachen geisterhaft übereinander, erst ab ~0,5 s sauber. Ein Asset, dessen
+  erste Frames in der falschen Sprache stehen, ist Ausschuss. Die linke Kachel
+  des Kontaktblatts fängt genau das ab — sie wird nur gern übersprungen.
+  Abhilfe: neu laufen lassen oder die erste halbe Sekunde abschneiden.
 - **Formulierung entscheidet über Identität.** Zwei Rezepte mussten wegen echter
   Fehlläufe umgeschrieben werden: „das Licht an die neue Szene anpassen" ließ
   das Modell die Kleidung aller Personen mit umbauen, und „labels and signage"
