@@ -9,9 +9,8 @@ One master clip, many markets. Swaps the on-screen text, captions, labels and
 signage into a new language, in place, keeping the fonts, colours and positions
 of the original.
 
-This is the use case that only exists because Omni renders legible text inside
-the frame. It touches **on-screen text only** — the spoken voiceover stays as
-it is.
+This only works because Omni keeps text inside the frame legible through an
+edit. It touches **on-screen text only** — the spoken voiceover stays as it is.
 
 Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
 
