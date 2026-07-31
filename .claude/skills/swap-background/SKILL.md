@@ -126,8 +126,8 @@ and keep it to one or two sentences.
 
 ## Notes
 
-- Cost is time-based: roughly **$0.13 per second** of 720p output. An 8-second
-  clip is about **$1** per run.
+- Cost is time-based: roughly **0.13 USD per second** of 720p output. An 8-second
+  clip is about **1 USD** per run.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one. Omni does not upscale.
 - The edit endpoint takes **text only** — you cannot hand it a reference photo

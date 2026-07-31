@@ -117,7 +117,7 @@ Short on purpose otherwise. Two things to avoid:
 
 ## Notes
 
-- Cost is time-based: roughly **$0.13 per second** of 720p output — about **$1**
+- Cost is time-based: roughly **0.13 USD per second** of 720p output — about **1 USD**
   for an 8-second clip.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one.
