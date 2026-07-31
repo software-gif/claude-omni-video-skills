@@ -65,8 +65,9 @@ python3 scripts/omni.py create \
   --aspect 16:9 --duration 8 --out ./examples --name source
 ```
 
-Das läuft über den Text-to-Video-Endpoint desselben Modells. Genau so ist der
-Beispielclip in `examples/` entstanden.
+Das läuft über den Text-to-Video-Endpoint desselben Modells. So ist der
+Beispielclip in `examples/` entstanden — der vollständige Prompt steht in
+[`examples/README.md`](examples/README.md).
 
 ## Das Kontaktblatt
 
@@ -96,7 +97,7 @@ egal welche der vier Skills.
 ## Grenzen — ehrlich
 
 Gemessen an einem 8-Sekunden-Clip mit einer Person, einem Produkt und
-eingebranntem Text, über rund zehn Läufe.
+eingebranntem Text, über sechs Läufe.
 
 - **Alle vier Skills liefen beim ersten Versuch durch.** Hintergrund, Material
   und Textübersetzung kamen sauber zurück, das Produkt blieb in Form und
