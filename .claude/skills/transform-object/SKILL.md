@@ -83,12 +83,12 @@ by side. **Read those images** and check, in this order:
    thing to smear when the surface is re-rendered. Look at them at full size.
    If the product carries small print, expect it to break at 720p — say so.
 4. **Burned-in overlay text is still there — and still there at the end.**
-   Changing a material can drop unrelated on-screen text partway through the
-   clip. In a two-colourway batch the brushed-steel take lost its "STAY SHARP"
-   overlay from the middle of the clip onwards while the forest-green take from
-   the same command kept it. Nothing was garbled, the words simply stopped
-   being there. Compare the middle and last tiles of the contact sheet against
-   the source row; the first frame will look fine either way.
+   Changing a material used to drop unrelated on-screen text partway through
+   the clip: a brushed-steel take lost its "STAY SHARP" overlay from the middle
+   onwards while the forest-green take from the same command kept it. Adding
+   "label, branding" to the recipe fixed that in a direct re-test, but it is a
+   cheap thing to check and an expensive thing to miss. Compare the middle and
+   last tiles against the source row; the first frame looks fine either way.
 5. **The finish is physically plausible in that light** — chrome that does not
    reflect the room reads as a flat grey sticker.
 6. **Motion intact** — the object still moves the way it did.
@@ -98,13 +98,18 @@ thing: use it for internal look-tests, not as a finished asset.
 
 ## Prompt rules
 
-> Change *&lt;object&gt;* to *&lt;target&gt;*. Keep its shape, size and position
-> identical, and keep the way it moves in the shot. Keep everything else the
-> same.
+> Change *&lt;object&gt;* to *&lt;target&gt;*. Keep its shape, position, label,
+> branding and motion the same. Keep everything else in the scene the same.
 
-- **Never write "the logo" into the instruction** unless the logo is genuinely
-  the thing being changed. Mentioning it unprompted invites the model to
-  redraw — or invent — one.
+**"label, branding" earns its place.** Without those two words, a
+brushed-steel run lost the clip's burned-in headline from the middle of the
+clip onwards. Same source, same target material, the version above kept the
+headline all the way through. Asking to *preserve* branding is not the same as
+mentioning a logo out of nowhere — see the next point.
+
+- **Do not name a logo that is not in the shot.** Preserving "branding" is
+  safe; asking the model to do something *to* a logo it cannot see invites it
+  to invent one. The sibling `/localize` skill learned that the hard way.
 - **One object, one property, one call.** "Chrome and put it on a marble table"
   is two jobs; the second one is `/swap-background`.
 

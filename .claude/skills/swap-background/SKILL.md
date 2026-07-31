@@ -105,14 +105,19 @@ The recipe lives in `scripts/omni.py` and is deliberately short:
 
 > Change only the background to *&lt;scene&gt;*. Do not change the people or
 > products in the shot: same faces, same clothing, same colours, same position
-> in the frame, same movement. Keep everything else the same.
+> in the frame, same action and movement. Keep everything else the same.
 
-**That wording is the result of a failed run, not a style choice.** An earlier
-version asked the model to "keep the main subject and the camera movement" and
-to "match the lighting on the subject to the new background". On a clip with a
-group of people it moved the Taj Mahal to a Tokyo street correctly — and
-re-dressed everyone in the frame to suit the new scene. Naming faces, clothing
-and colours explicitly is what stopped that.
+**Every clause in there is the result of a failed run, not a style choice.**
+
+An early version asked the model to "keep the main subject and the camera
+movement" and to "match the lighting on the subject to the new background". On a
+clip with a group of people it moved the Taj Mahal to a Tokyo street correctly —
+and re-dressed everyone in the frame to suit the new scene. Naming faces,
+clothing and colours explicitly stopped that.
+
+"Same **action**" came later, from a four-market batch where the Miami variant
+had the subject start drinking from a bottle she only holds in the source. The
+same scene re-run with "action" in the instruction kept her holding it.
 
 So: do not extend this prompt and do not "improve" it without measuring the
 result. Every extra sentence is another permission to rebuild something. If you

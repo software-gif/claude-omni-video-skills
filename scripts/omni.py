@@ -79,24 +79,34 @@ ANGLES = {
 
 
 def prompt_swap_background(scene):
+    # "same action" kam nachträglich dazu: Ohne das Wort hat das Modell in einer
+    # von vier Marktvarianten eine Trinkbewegung erfunden, die es in der Quelle
+    # nicht gab. Mit ihm blieb genau diese Variante sauber.
     return (
         f"Change only the background to {scene}. "
         f"Do not change the people or products in the shot: same faces, same clothing, "
-        f"same colours, same position in the frame, same movement. {KEEP}"
+        f"same colours, same position in the frame, same action and movement. {KEEP}"
     )
 
 
 def prompt_change_angle(shot):
+    # "action" ist das entscheidende Wort. Ohne es hat das Modell in einem
+    # Over-the-Shoulder-Take eine Trinkbewegung erfunden, die es in der Quelle
+    # nicht gab; mit ihm nicht. Gleiche Quelle, gleicher Winkel, direkter A/B.
     return (
         f"Re-frame this shot as {shot}. "
-        f"Keep the same scene, the same subject, the same moment and the same lighting. {KEEP}"
+        f"Keep the same subject, action, wardrobe, lighting and setting. {KEEP}"
     )
 
 
 def prompt_transform_object(obj, target):
+    # "label, branding" ausdrücklich zu erhalten, hat im A/B den eingebrannten
+    # Text gerettet: ohne die Wörter war die Headline ab Bildmitte weg, mit
+    # ihnen stand sie durchgehend. Gleiche Quelle, gleiches Zielmaterial.
     return (
         f"Change {obj} to {target}. "
-        f"Keep its shape, size and position identical, and keep the way it moves in the shot. {KEEP}"
+        f"Keep its shape, position, label, branding and motion the same. "
+        f"Keep everything else in the scene the same."
     )
 
 
@@ -126,7 +136,7 @@ def plan(args):
     if args.command == "transform-object":
         return [(slugify(t, 32), prompt_transform_object(args.object, t)) for t in args.to]
     if args.command == "localize":
-        return [(slugify(lang, 24), prompt_localize(lang, args.keep)) for lang in args.lang]
+        return [(lang_slug(lang), prompt_localize(lang, args.keep)) for lang in args.lang]
     if args.command == "raw":
         return [("raw", args.prompt)]
     if args.command == "create":
@@ -157,6 +167,52 @@ def load_key():
 def slugify(text, limit=48):
     slug = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
     return (slug[:limit].rstrip("-")) or "run"
+
+
+# Kurze Dateinamen-Kürzel statt "brazilian-portuguese".
+LANG_SLUGS = {
+    "arabic": "ar", "chinese": "zh", "mandarin": "zh", "danish": "da", "dutch": "nl",
+    "english": "en", "filipino": "fil", "finnish": "fi", "french": "fr", "german": "de",
+    "greek": "el", "hindi": "hi", "indonesian": "id", "italian": "it", "japanese": "ja",
+    "korean": "ko", "malay": "ms", "norwegian": "no", "polish": "pl", "portuguese": "pt",
+    "romanian": "ro", "russian": "ru", "spanish": "es", "swedish": "sv", "thai": "th",
+    "turkish": "tr", "ukrainian": "uk", "vietnamese": "vi",
+}
+
+
+def lang_slug(language):
+    key = (language or "").strip().lower()
+    if key in LANG_SLUGS:
+        return LANG_SLUGS[key]
+
+    base = key.split("(")[0].strip()          # "Spanish (Mexico)" -> "es-mexico"
+    if base in LANG_SLUGS:
+        region = slugify(key.split("(")[-1].rstrip(")"), 12)
+        return f"{LANG_SLUGS[base]}-{region}" if region != "run" else LANG_SLUGS[base]
+
+    words = base.split()                      # "Brazilian Portuguese" -> "pt-brazilian"
+    if len(words) > 1 and words[-1] in LANG_SLUGS:
+        return f"{LANG_SLUGS[words[-1]]}-{slugify(' '.join(words[:-1]), 12)}"
+
+    return slugify(key, 16)
+
+
+def claim_version(out_dir, stem, ext=".mp4"):
+    """Nächste freie _v1/_v2/… beanspruchen, atomar.
+
+    Ein erneuter Lauf darf ein gutes Ergebnis nie überschreiben — dafür hat es
+    zu viel gekostet. O_EXCL macht das auch dann sicher, wenn mehrere Läufe
+    parallel in denselben Ordner schreiben.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    version = 1
+    while True:
+        candidate = out_dir / f"{stem}_v{version}{ext}"
+        try:
+            os.close(os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644))
+            return candidate
+        except FileExistsError:
+            version += 1
 
 
 def resolve_source(fal_client, source, work_dir):
@@ -526,8 +582,6 @@ def main():
             step += 1
             label = f"[{step}/{total}] " if total > 1 else ""
             stem = args.name if (args.name and len(jobs) == 1) else f"{base}-{slug}"
-            if args.runs > 1:
-                stem = f"{stem}-{run}"
 
             if args.command == "create":
                 arguments = {"prompt": prompt, "aspect_ratio": args.aspect,
@@ -552,11 +606,14 @@ def main():
                     break
                 continue
 
-            target = download(video["url"], out_dir / f"{stem}.mp4")
+            # Nie überschreiben: jeder Lauf beansprucht die nächste freie Version.
+            target = claim_version(out_dir, stem)
+            download(video["url"], target)
             written.append(target)
             print(f"  {label}→ {target}  ({video.get('file_size', 0) / 1_048_576:.1f} MB, {took:.0f}s)")
 
-            sheet = contact_sheet(source_local, target, out_dir / f"{stem}-compare.jpg",
+            sheet = contact_sheet(source_local, target,
+                                  out_dir / f"{target.stem}-compare.jpg",
                                   work_dir, tag=f"{step}")
             if sheet:
                 print(f"  {label}→ {sheet}  (oben Quelle, unten Ergebnis)")
@@ -569,7 +626,7 @@ def main():
                 "compare": str(sheet) if sheet else None, "seconds": round(took, 1),
             }
             manifest.append(entry)
-            (out_dir / f"{stem}.json").write_text(
+            (out_dir / f"{target.stem}.json").write_text(
                 json.dumps(entry, indent=2, ensure_ascii=False))
 
     if not written:

@@ -180,9 +180,24 @@ steht in [`examples/README.md`](examples/README.md).
 
 ## Kosten
 
-Abgerechnet wird nach Videolänge: laut fal-Modellseite rund **0,13 $ pro
-Sekunde** 720p-Video. Ein 8-Sekunden-Clip kostet also grob **1 $ pro Lauf** —
-egal welche Skill, und pro Variante im Batch.
+Abgerechnet wird **nach Sekunde**: laut fal-Modellseite rund 0,13 $ pro Sekunde
+720p-Video. Das gilt pro Variante, nicht pro Befehl.
+
+| | |
+|---|---|
+| Ein Clip, eine Variante, 8 s | ~1,04 $ |
+| Derselbe Clip auf 5 s gekürzt | ~0,65 $ |
+| Vier Märkte aus einem 8-s-Dreh | ~4,16 $ |
+| Vier Märkte aus 5 s | ~2,60 $ |
+
+**Der wirksamste Sparhebel ist die Schere, nicht das Modell.** Die Ausgabe ist
+so lang wie die Quelle, und abgerechnet wird pro Sekunde — wer vorher auf die
+Sekunden kürzt, die er wirklich braucht, zahlt bei jedem Lauf und jeder Variante
+entsprechend weniger:
+
+```bash
+ffmpeg -i clip.mp4 -t 5 -c:v libx264 -crf 20 clip-5s.mp4
+```
 
 `--dry-run` zeigt den kompletten Plan mit Prompt und Größenordnung, ohne etwas
 auszugeben. Bei Batches über etwa drei Varianten lohnt sich das immer.
@@ -200,13 +215,13 @@ Kameramaterial, quer- und hochformatig, einzeln und im Batch.
   Ergebnis der ganzen Testreihe.
 - **Hochformat funktioniert.** 9:16 rein, 9:16 raus, Person und eingebrannter
   Text unangetastet.
-- **Das Modell erfindet gelegentlich eine Handlung, und nicht nur bei
-  `change-angle`.** Im Over-the-Shoulder-Take trinkt die Person aus der Flasche,
-  die sie in der Quelle nur hochhält. Dasselbe passierte im Vier-Markt-Batch: bei
-  Miami trinkt sie im letzten Drittel, bei Tokio und Alpendorf aus demselben
-  Befehl nicht. Grob jeder dritte bis vierte Lauf. Als B-Roll brauchbar, als
-  Schnittgegenstück zum Original nicht — und weil es am Ende des Clips passiert,
-  sieht das erste Bild immer gut aus.
+- **Erfundene Handlungen waren der häufigste Fehler — bis ein Wort sie behob.**
+  In einem Over-the-Shoulder-Take trank die Person plötzlich aus der Flasche,
+  die sie in der Quelle nur hochhält; im Vier-Markt-Batch passierte dasselbe bei
+  Miami, während Tokio und Alpendorf aus demselben Befehl sauber blieben. Grob
+  jeder dritte bis vierte Lauf. Das Rezept sagt jetzt ausdrücklich „same
+  **action**", und beide Fälle blieben im direkten Nachtest sauber. Trotzdem
+  prüfen: es passiert am Clip-Ende, das erste Bild sieht immer gut aus.
 - **Vage Kadrierungswörter liefern vage Kadrierungen.** „a closer shot of the
   main subject" kam zweimal hintereinander als praktisch unveränderte
   Einstellung zurück — Wiederholen half nicht. Erst „framing only … filling the
@@ -216,11 +231,13 @@ Kameramaterial, quer- und hochformatig, einzeln und im Batch.
 - **Nahaufnahmen halten nicht über die volle Länge.** Der enge Ausschnitt war am
   Anfang am stärksten und lockerte sich zum Ende Richtung Originalkadrierung.
   Deshalb im Kontaktblatt das letzte Bild ansehen, nicht nur das erste.
-- **Eingebrannter Text kann mitten im Clip verschwinden.** Bei einer
+- **Eingebrannter Text konnte mitten im Clip verschwinden.** Bei einer
   Colourway-Reihe verlor der Edelstahl-Lauf sein „STAY SHARP" ab der Bildmitte,
   während der grüne Lauf aus demselben Befehl es behielt. Nichts war verzerrt,
-  die Wörter waren einfach weg. Das erste Bild sieht in beiden Fällen gut aus —
-  deshalb gehört der Blick auf Mitte und Ende zur Prüfung.
+  die Wörter waren einfach weg. Behoben, indem das Rezept „label, branding"
+  ausdrücklich als zu erhalten benennt — im Nachtest mit identischem Zielmaterial
+  stand die Headline durchgehend. Das erste Bild sieht in beiden Fällen gut aus,
+  deshalb bleibt der Blick auf Mitte und Ende Teil der Prüfung.
 - **Übersetzungen schwanken zwischen Läufen.** Dasselbe „STAY SHARP" wurde
   einmal „BLEIB SMART" und einmal „BLEIBE SCHARF" — beides korrekt, aber wenn
   eine bestimmte Formulierung stehen muss, prüfen und gegebenenfalls wiederholen.
@@ -283,6 +300,7 @@ python3 scripts/omni.py create           --prompt "..." --aspect 9:16 --duration
 | `--out` | Zielordner (Default `./out`) |
 | `--name` | Basisname der Ausgabedateien |
 | `--runs` | Generierungen pro Variante |
+| — | Ergebnisse werden **nie überschrieben**: jeder Lauf legt `_v1`, `_v2`, … an |
 | `--dry-run` | nur den Plan und die Kosten zeigen |
 | `--json` | Ergebnis maschinenlesbar auf stdout |
 

@@ -88,8 +88,9 @@ shipping a broken word.
 
 ## Prompt rules
 
-> Translate all on-screen text, captions, labels and signage into *&lt;language&gt;*.
-> Keep the same fonts, colours, sizes and positions. Leave *&lt;keep&gt;* in the
+> Translate the text that is already visible in the frame into *&lt;language&gt;*.
+> Keep the same fonts, colours, sizes and positions. Do not add text anywhere,
+> and leave surfaces that have no text on them blank. Leave *&lt;keep&gt;* in the
 > original language. Keep everything else the same.
 
 **The wording "labels and signage" used to be in this recipe and had to go.**

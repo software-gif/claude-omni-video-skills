@@ -78,12 +78,12 @@ Read it, and check:
    tight framing was strongest at the start and drifted back towards the
    original composition by the end. Check the last frame of the contact sheet,
    not just the first.
-3. **Same action.** The other failure that actually shows up. In the example run
-   in `examples/`, the source has a woman holding a bottle beside her shoulder;
-   the over-the-shoulder take has her drinking from it. Scene, clothing, light
-   and burned-in text were all correct — the action was invented. Usable as
-   standalone B-roll, useless as a cut against the original. Re-run when the
-   take has to match.
+3. **Same action.** The recipe now locks this explicitly and it holds, but check
+   anyway. The example in `examples/change-angle.mp4` was made before the fix:
+   the source has a woman holding a bottle beside her shoulder, the
+   over-the-shoulder take has her drinking from it. Everything else was right,
+   which is what made it easy to miss. Re-running the same angle with the
+   current recipe kept her holding the bottle.
 4. **Same scene** — same clothing, same props, same background, same light.
 5. **The subject survived the reframe** — faces and product labels are where a
    new angle breaks down, because the model has to invent what the original
@@ -99,10 +99,15 @@ if it does not match, report that rather than shipping it as coverage.
 
 ## Prompt rules
 
-> Re-frame this shot as *&lt;shot&gt;*. Keep the same scene, the same subject, the
-> same moment and the same lighting. Keep everything else the same.
+> Re-frame this shot as *&lt;shot&gt;*. Keep the same subject, action, wardrobe,
+> lighting and setting. Keep everything else the same.
 
-Short on purpose. Two things to avoid:
+**The word "action" is doing real work there.** An earlier version said "the
+same moment" instead, and on an over-the-shoulder reframe the model invented a
+drinking motion that was not in the source. Same clip, same angle, the version
+above kept her holding the bottle. Do not drop it.
+
+Short on purpose otherwise. Two things to avoid:
 
 - **Do not ask for two changes at once.** "A close-up, and make it night"
   reliably gets you one of the two. Chain two calls instead.
