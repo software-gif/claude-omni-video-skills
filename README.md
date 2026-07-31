@@ -77,7 +77,8 @@ Referenzbilder.** Du kannst also kein exaktes Produkt und kein bestimmtes
 Gesicht in einen bestehenden Clip setzen. Das braucht Referenz plus Motion
 Control und ist ein anderer Aufbau.
 
-Ausgabe ist immer 1280×720 bei 24 fps, mit Ton, in der Länge der Quelle.
+Ausgabe ist 720p bei 24 fps, mit Ton, in der Länge der Quelle: 1280×720 bei
+querformatiger Quelle, 720×1280 bei hochformatiger. Gemessen an beiden.
 
 Und damit klar ist, wie wenig dahintersteckt — das ist der komplette Aufruf.
 Du fasst das nie an, `scripts/omni.py` erledigt Upload, Warteschlange,
@@ -182,27 +183,46 @@ auszugeben. Bei Batches über etwa drei Varianten lohnt sich das immer.
 
 ## Grenzen — ehrlich
 
-Gemessen an einem 8-Sekunden-Clip mit einer Person, einem Produkt und
-eingebranntem Text, über sechs Läufe.
+Gemessen über rund 17 echte Läufe: KI-erzeugtes Ausgangsmaterial und echtes
+Kameramaterial, quer- und hochformatig, einzeln und im Batch.
 
-- **Alle vier Skills liefen beim ersten Versuch durch.** Hintergrund, Material
-  und Textübersetzung kamen sauber zurück, das Produkt blieb in Form und
-  Position, der eingebrannte Text blieb in drei von vier Läufen unangetastet.
+- **Echtes Drehmaterial läuft mindestens so gut wie KI-Material.** Das war die
+  größte offene Frage, weil die ersten Messungen alle an einem generierten Clip
+  entstanden. Gegentest mit echter Studioaufnahme (Person, Produkt, rosa
+  Hintergrund) nach „helles Bad mit weißen Fliesen": Gesicht, Zahnspange,
+  Oberteil, Produkt und Handbewegung Frame für Frame identisch. Das beste
+  Ergebnis der ganzen Testreihe.
+- **Hochformat funktioniert.** 9:16 rein, 9:16 raus, Person und eingebrannter
+  Text unangetastet.
 - **`change-angle` erfindet gelegentlich eine Handlung.** Im Beispiel hält die
   Person die Flasche neben die Schulter — im Over-the-Shoulder-Take trinkt sie
-  daraus. Als B-Roll brauchbar, als Schnittgegenstück zum Original nicht. Immer
-  gegen das Original prüfen.
-- **Formulierung entscheidet über Identität.** Eine frühe Fassung des
-  Hintergrund-Prompts bat darum, „das Licht an die neue Szene anzupassen" —
-  daraufhin hat das Modell in einem Testlauf die Kleidung aller Personen mit
-  umgebaut. Die ausgelieferte Fassung benennt Gesichter, Kleidung und Farben
-  ausdrücklich als unveränderlich. Deshalb: an den Rezepten in `scripts/omni.py`
-  nichts anhängen, ohne es zu messen.
+  daraus. Als B-Roll brauchbar, als Schnittgegenstück zum Original nicht.
+- **Vage Kadrierungswörter liefern vage Kadrierungen.** „a closer shot of the
+  main subject" kam zweimal hintereinander als praktisch unveränderte
+  Einstellung zurück — Wiederholen half nicht. Erst „framing only … filling the
+  frame" erzeugte eine echte Nahaufnahme, und zwar im Erstversuch. Die Presets
+  sind deshalb umformuliert. Merksatz: sag, was das Bild füllen soll und was
+  wegfällt.
+- **Nahaufnahmen halten nicht über die volle Länge.** Der enge Ausschnitt war am
+  Anfang am stärksten und lockerte sich zum Ende Richtung Originalkadrierung.
+  Deshalb im Kontaktblatt das letzte Bild ansehen, nicht nur das erste.
+- **Übersetzungen schwanken zwischen Läufen.** Dasselbe „STAY SHARP" wurde
+  einmal „BLEIB SMART" und einmal „BLEIBE SCHARF" — beides korrekt, aber wenn
+  eine bestimmte Formulierung stehen muss, prüfen und gegebenenfalls wiederholen.
+- **Formulierung entscheidet über Identität.** Zwei Rezepte mussten wegen echter
+  Fehlläufe umgeschrieben werden: „das Licht an die neue Szene anpassen" ließ
+  das Modell die Kleidung aller Personen mit umbauen, und „labels and signage"
+  im Übersetzungs-Prompt hat einer glatten schwarzen Flasche einen erfundenen
+  Schriftzug verpasst. Beides ist gefixt und nachgemessen. Deshalb: an den
+  Rezepten in `scripts/omni.py` nichts anhängen, ohne es zu messen.
 - **720p ist die Decke.** Kleingedrucktes auf einem Etikett überlebt das nicht —
   Headlines und Beschriftungen schon.
 - **Der Edit nimmt nur Text, keine Referenzbilder.**
 - **Eine Änderung pro Aufruf.** Zwei Wünsche in einem Prompt („Nahaufnahme, und
   mach es Nacht") liefern zuverlässig einen davon.
+- **Ein Lauf dauert 40 bis 90 Sekunden.** Das Skript zeigt alle 30 Sekunden ein
+  Lebenszeichen und bricht nach 10 Minuten mit der Request-ID ab, damit ein
+  hängender Lauf nicht stillschweigend ewig steht.
 - **Regionssperre — und warum sie hier nicht greift.** Google sperrt das
   Bearbeiten *hochgeladener* Videos für Nutzer in EWR, Schweiz und UK;
   *modell-generierte* Videos zu bearbeiten ist dort laut Google erlaubt. Über

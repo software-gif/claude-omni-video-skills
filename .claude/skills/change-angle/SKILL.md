@@ -67,15 +67,25 @@ writes a `…-compare.jpg` next to the video — top row source, bottom row resu
 Read it, and check:
 
 1. **It is actually a different angle**, not the same framing with a slight
-   zoom. A "close-up" that is a 5 % crop is a failed run — re-run it.
-2. **Same action.** This is the failure mode that actually shows up. In the
-   example run in `examples/`, the source has a woman holding a bottle beside
-   her shoulder; the over-the-shoulder take has her drinking from it. Scene,
-   clothing, light and burned-in text were all correct — the action was
-   invented. Usable as standalone B-roll, useless as a cut against the
-   original. Re-run when the take has to match.
-3. **Same scene** — same clothing, same props, same background, same light.
-4. **The subject survived the reframe** — faces and product labels are where a
+   zoom. This happens, and **re-running does not fix it** — we asked for
+   `close-up` twice with the old preset wording and got a near-identical frame
+   both times. It is a wording problem, not variance: replacing "a closer shot
+   of the main subject" with "a tight close-up framing only the subject's head
+   and the product, filling the frame" produced a real close-up on the first
+   try. So if a framing comes back too timid, do not just re-run — say what
+   should fill the frame and what should be cropped out, via `--to`.
+2. **The framing holds for the whole clip.** In the successful close-up the
+   tight framing was strongest at the start and drifted back towards the
+   original composition by the end. Check the last frame of the contact sheet,
+   not just the first.
+3. **Same action.** The other failure that actually shows up. In the example run
+   in `examples/`, the source has a woman holding a bottle beside her shoulder;
+   the over-the-shoulder take has her drinking from it. Scene, clothing, light
+   and burned-in text were all correct — the action was invented. Usable as
+   standalone B-roll, useless as a cut against the original. Re-run when the
+   take has to match.
+4. **Same scene** — same clothing, same props, same background, same light.
+5. **The subject survived the reframe** — faces and product labels are where a
    new angle breaks down, because the model has to invent what the original
    camera never saw.
 
@@ -104,7 +114,8 @@ Short on purpose. Two things to avoid:
 
 - Cost is time-based: roughly **$0.13 per second** of 720p output — about **$1**
   for an 8-second clip.
-- Output is 1280×720 at 24 fps, with audio, in the length of the source.
+- Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
+  for a landscape source, 720×1280 for a portrait one.
 - Angles that require inventing a lot of unseen geometry (a full 180° reverse)
   are the weakest case. Small to moderate reframes hold up best.
 - Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but

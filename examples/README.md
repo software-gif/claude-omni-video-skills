@@ -51,6 +51,40 @@ python3 scripts/omni.py swap-background --input examples/source.mp4 \
   --out ./out
 ```
 
+## Batch, Hochformat, Nahaufnahme
+
+Später dazugekommen, alle drei aus echten Läufen.
+
+**Ein Batch über zwei Sprachmärkte** — `localize --lang French --lang German`,
+ein Befehl, ein Upload, am Ende dieses Überblicksbild. Links die Quelle, daneben
+die beiden Varianten:
+
+![STAY SHARP, RESTEZ ALERTE, BLEIBE SCHARF](batch-localize.jpg)
+
+Nebenbei sichtbar: dieselbe Vorlage wurde in einem früheren Lauf zu
+„BLEIB SMART", hier zu „BLEIBE SCHARF". Beides korrektes Deutsch. Wenn eine
+bestimmte Formulierung stehen muss, prüfen und notfalls wiederholen.
+
+**Hochformat** — 9:16 rein, 9:16 raus (`vertical-source.mp4` →
+`vertical-swap.mp4`), Dachterrasse wird Kiefernwald:
+
+![9:16 Dachterrasse wird Kiefernwald](vertical-swap.jpg)
+
+**Nahaufnahme, zweiter Anlauf** (`change-angle-closeup.mp4`). Das Preset
+`--angle close-up` lieferte zweimal hintereinander fast die Ausgangskadrierung.
+Erst diese Formulierung erzeugte eine echte Nahaufnahme:
+
+```bash
+python3 scripts/omni.py change-angle --input examples/source.mp4 \
+  --to "a tight close-up framing only the subject's head and the product, filling the frame"
+```
+
+![Echte Nahaufnahme, die zum Ende hin nachlässt](change-angle-closeup.jpg)
+
+Gut zu sehen ist auch die Grenze: links sitzt der enge Ausschnitt, nach rechts
+lockert er sich Richtung Original. Deshalb steht das Preset inzwischen so im
+Code — und deshalb lohnt der Blick aufs letzte Bild, nicht nur aufs erste.
+
 ## Was in diesen Läufen auffällt
 
 **`change-angle` hat eine Handlung erfunden.** In der Quelle hält die Frau die
@@ -66,7 +100,25 @@ Prüfpunkt.
 danach exakt so da wie vorher. Nur `localize` hat ihn angefasst — das war der
 Auftrag.
 
-**Der Prompt für `swap-background` musste nachgeschärft werden.** Eine frühere
+**Echtes Drehmaterial haben wir gegengetestet, aber nicht hier abgelegt.** Alle
+Beispiele oben stammen aus KI-erzeugten Clips, deshalb der Gegentest mit einer
+echten Studioaufnahme (Person mit Produkt vor rosa Hintergrund, Stockmaterial).
+Nach „helles Bad mit weißen Fliesen" waren Gesicht, Zahnspange, Oberteil,
+Produkt und Handbewegung Frame für Frame identisch — das sauberste Ergebnis der
+ganzen Reihe. Die Dateien liegen nicht im Repo, weil die Lizenz des
+Stockanbieters das Weiterverteilen des Materials nicht deckt.
+
+**Zwei Prompt-Rezepte mussten wegen echter Fehlläufe umgeschrieben werden.**
+
+Der Übersetzungs-Prompt sagte ursprünglich „translate all on-screen text,
+captions, **labels and signage**". Daraufhin hat das Modell der glatten
+schwarzen Flasche einen erfundenen Schriftzug verpasst — ein Markenzeichen, das
+es nie gab. Die Formulierung lädt dazu ein, Produktoberflächen als Ort für
+Etiketten zu lesen. Jetzt heißt es „translate the text that is already visible …
+do not add text anywhere, and leave surfaces that have no text on them blank",
+und die Flasche bleibt glatt. Nachgemessen in beiden Sprachen.
+
+**Der Prompt für `swap-background` musste ebenfalls nachgeschärft werden.** Eine frühere
 Fassung sagte sinngemäß „Hauptmotiv und Kamerafahrt behalten, Licht an die neue
 Szene anpassen". In einem Testlauf mit einer Menschengruppe hat das Modell
 daraufhin die Kleidung aller Personen an die neue Szene angepasst. Die

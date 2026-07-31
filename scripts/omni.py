@@ -60,10 +60,17 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 KEEP = "Keep everything else the same."
 
+# Vage Kadrierungswörter liefern vage Kadrierungen. "a closer shot of the main
+# subject" kam zweimal hintereinander als praktisch unveränderte Einstellung
+# zurück; erst "framing only … filling the frame" erzeugte eine echte
+# Nahaufnahme. Deshalb benennt jeder Eintrag, was im Bild sein soll und was
+# nicht — geraten wird hier nichts.
 ANGLES = {
     "wide": "a wider shot that reveals more of the surroundings",
-    "close-up": "a closer shot of the main subject",
-    "extreme-close-up": "an extreme close-up of the main subject",
+    "close-up": "a tight close-up framing only the subject's head and the product, "
+                "filling the frame",
+    "extreme-close-up": "an extreme close-up filling the frame with just the product, "
+                        "cropping everything else out",
     "over-the-shoulder": "an over-the-shoulder shot from behind the main subject",
     "low": "a low camera angle looking up at the main subject",
     "high": "a high camera angle looking down at the main subject",
@@ -94,10 +101,17 @@ def prompt_transform_object(obj, target):
 
 
 def prompt_localize(lang, keep=None):
+    # "labels and signage" stand hier früher mit drin und war ein Fehler: In
+    # einem Testlauf hat das Modell daraufhin einer glatten schwarzen Flasche
+    # einen erfundenen Schriftzug verpasst. Die Formulierung lädt dazu ein,
+    # Produktoberflächen als Ort für Etiketten zu lesen. Jetzt: nur das
+    # übersetzen, was schon da ist, und leere Flächen leer lassen.
     tail = f" Leave {keep} in the original language." if keep else ""
     return (
-        f"Translate all on-screen text, captions, labels and signage into {lang}. "
-        f"Keep the same fonts, colours, sizes and positions.{tail} {KEEP}"
+        f"Translate the text that is already visible in the frame into {lang}. "
+        f"Keep the same fonts, colours, sizes and positions. "
+        f"Do not add text anywhere, and leave surfaces that have no text on them blank."
+        f"{tail} {KEEP}"
     )
 
 

@@ -105,8 +105,9 @@ thing: use it for internal look-tests, not as a finished asset.
 
 - Cost is time-based: roughly **$0.13 per second** of 720p output — about **$1**
   for an 8-second clip.
-- Output is 1280×720 at 24 fps, with audio, in the length of the source. 720p is
-  the ceiling — fine label text on a small object will not hold up.
+- Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
+  for a landscape source, 720×1280 for a portrait one. 720p is the ceiling, so
+  fine label text on a small object will not hold up.
 - The edit endpoint is text-only: you cannot supply a swatch or a reference
   photo of the exact material. Describe it instead.
 - Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
