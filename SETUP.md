@@ -117,6 +117,17 @@ Seltener: zu viele parallele Läufe. Umgehen lässt sich der Upload komplett,
 indem du `--input` mit einer öffentlichen URL statt einer lokalen Datei
 aufrufst.
 
+### „The prompt contains sensitive words" (nur beim Google-Direktweg)
+
+Diese Meldung kommt, wenn du Omni **direkt über die Google-Gemini-API**
+ansprichst statt über fal, und einen eigenen Clip zum Bearbeiten hochlädst.
+Sie ist irreführend: Es liegt nicht am Prompt. Wir haben es mit „Make this
+video look like winter." gegengetestet — auch blockiert. Derselbe Prompt ohne
+hochgeladenes Video läuft dagegen durch.
+
+Dahinter steckt die EWR/Schweiz/UK-Sperre für das Bearbeiten hochgeladener
+Videos. Lösung: über fal gehen, so wie dieses Repo es tut.
+
 ### Etwas mit „not available in your region"
 
 Google sperrt das Bearbeiten **hochgeladener** Videos für Nutzer in EWR,

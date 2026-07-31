@@ -264,12 +264,26 @@ Kameramaterial, quer- und hochformatig, einzeln und im Batch.
 - **Ein Lauf dauert 40 bis 90 Sekunden.** Das Skript zeigt alle 30 Sekunden ein
   Lebenszeichen und bricht nach 10 Minuten mit der Request-ID ab, damit ein
   hängender Lauf nicht stillschweigend ewig steht.
-- **Regionssperre — und warum sie hier nicht greift.** Google sperrt das
-  Bearbeiten *hochgeladener* Videos für Nutzer in EWR, Schweiz und UK;
-  *modell-generierte* Videos zu bearbeiten ist dort laut Google erlaubt. Über
-  fal läuft die Anfrage ohnehin nicht aus dem EWR heraus — deshalb liefen unsere
-  Läufe aus Deutschland durch, mit hochgeladener Datei wie mit öffentlicher URL.
-  Direkt über die Google-Gemini-API kann die Sperre greifen.
+- **Warum fal und nicht direkt Google — nachgemessen.** Naheliegende Idee: den
+  Umweg sparen und Omni direkt über die Google-Gemini-API ansprechen. Aus
+  Deutschland geht das für den Video-Edit **nicht**. Getestet mit gültigem
+  Google-Key, gleicher Prompt, einmal mit und einmal ohne hochgeladenes Video:
+
+  | Aufruf | Ergebnis |
+  |---|---|
+  | Text-to-Video, kein Upload | HTTP 200, läuft |
+  | Derselbe Prompt + hochgeladener Clip | HTTP 400, abgelehnt |
+
+  Das ist die dokumentierte EWR/Schweiz/UK-Sperre für das Bearbeiten
+  hochgeladener Videos. Google meldet sie allerdings als *„The prompt contains
+  sensitive words"* — auch bei einem Prompt wie „Make this video look like
+  winter." Wer das sieht, sucht den Fehler im Prompt und wird ihn nie finden.
+  Über fal läuft die Anfrage nicht aus dem EWR heraus, deshalb funktioniert
+  dieser Weg.
+
+  Günstiger wäre der Direktweg ohnehin nicht: Googles eigene Token-Abrechnung
+  für einen Lauf ergibt hochgerechnet ~1,04 USD für 8 Sekunden Ausgabe — dieselbe
+  Größenordnung wie fal.
 - **Kein Voiceover.** Der Endpoint bearbeitet keine Stimmen. `/localize` ändert
   ausschließlich Text im Bild.
 
