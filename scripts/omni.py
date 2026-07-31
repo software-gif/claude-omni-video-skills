@@ -172,10 +172,16 @@ def resolve_source(fal_client, source, work_dir):
     try:
         url = fal_client.upload_file(str(path))
     except Exception as exc:  # noqa: BLE001 — der Nutzer braucht den Grund, nicht den Stack
+        # fal schreibt den eigentlichen Grund in den Antwort-Body ("User is locked.
+        # Reason: Exhausted balance."). Der str() der Exception enthält nur URL und
+        # Status, also den Body herausziehen — sonst sieht man bloß ein nacktes 403.
+        detail = getattr(getattr(exc, "response", None), "text", "") or ""
         sys.exit(
-            f"Upload fehlgeschlagen: {type(exc).__name__}: {exc}\n"
-            "  Häufigste Ursachen: FAL_KEY ohne Storage-Rechte, aufgebrauchtes Guthaben, "
-            "oder zu viele parallele Läufe. Alternativ --input mit einer öffentlichen URL aufrufen."
+            f"Upload fehlgeschlagen: {type(exc).__name__}: {exc}"
+            + (f"\n  fal sagt: {detail.strip()[:300]}" if detail else "")
+            + "\n  Häufigste Ursachen: aufgebrauchtes Guthaben (fal.ai/dashboard/billing), "
+            "ungültiger FAL_KEY, oder zu viele parallele Läufe.\n"
+            "  Alternativ --input mit einer öffentlichen URL aufrufen — das umgeht den Upload."
         )
 
     cache[fingerprint] = url

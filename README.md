@@ -121,11 +121,14 @@ eingebranntem Text, über sechs Läufe.
 - **Eine Änderung pro Aufruf.** Zwei Wünsche in einem Prompt („Nahaufnahme, und
   mach es Nacht") liefern zuverlässig einen davon. Zwei Aufrufe hintereinander
   sind der Weg.
-- **Regionssperre laut fal:** Google gibt an, dass das Bearbeiten hochgeladener
-  Videos in EWR, Schweiz und UK nicht verfügbar ist. In unseren Läufen aus
-  Deutschland ging es trotzdem — sowohl mit hochgeladener Datei als auch mit
-  öffentlicher URL. Verlass dich nicht darauf; falls du die Sperre siehst, ist
-  sie kein Fehler im Skript.
+- **Regionssperre — und warum sie hier nicht greift.** Google sperrt das
+  Bearbeiten *hochgeladener* Videos für Nutzer in EWR, Schweiz und UK;
+  *modell-generierte* Videos zu bearbeiten ist dort laut Google erlaubt. Über
+  fal läuft die Anfrage ohnehin nicht aus dem EWR heraus, sondern über fals
+  Infrastruktur — deshalb liefen unsere Läufe aus Deutschland durch, mit
+  hochgeladener Datei wie mit öffentlicher URL. Rufst du das Modell dagegen
+  direkt über die Google-Gemini-API auf, kann die Sperre greifen. Das ist dann
+  kein Fehler im Skript.
 - **Kein Voiceover.** Der Endpoint bearbeitet keine Stimmen. `/localize` ändert
   ausschließlich Text im Bild.
 
