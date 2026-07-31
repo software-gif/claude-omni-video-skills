@@ -92,10 +92,20 @@ shipping a broken word.
 > Keep the same fonts, colours, sizes and positions. Leave *&lt;keep&gt;* in the
 > original language. Keep everything else the same.
 
+**The wording "labels and signage" used to be in this recipe and had to go.**
+It reads any surface as somewhere labels belong. On one run it printed a
+garbled wordmark onto a plain black bottle; on another it turned a grey hoodie
+black, stamped an invented "SHARP" logo across it and added a sentence nobody
+wrote. The translation itself was correct both times, which is exactly what
+makes it dangerous. Old wording: 2 of 3 runs unusable. Current wording: 2 of 2
+clean. See `examples/failure-invented-branding.jpg`.
+
 - **Do not paste the target translation into the prompt.** Asking the model to
   reproduce a given string letter-for-letter performs worse than asking it to
   translate; it renders text, it does not typeset.
 - **Do not ask for a language change and a layout change in one call.**
+- **Never add words like "labels", "signage" or "branding" back in.** That is
+  the exact failure above.
 
 ## Notes
 

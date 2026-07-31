@@ -111,12 +111,26 @@ Stockanbieters das Weiterverteilen des Materials nicht deckt.
 **Zwei Prompt-Rezepte mussten wegen echter Fehlläufe umgeschrieben werden.**
 
 Der Übersetzungs-Prompt sagte ursprünglich „translate all on-screen text,
-captions, **labels and signage**". Daraufhin hat das Modell der glatten
-schwarzen Flasche einen erfundenen Schriftzug verpasst — ein Markenzeichen, das
-es nie gab. Die Formulierung lädt dazu ein, Produktoberflächen als Ort für
-Etiketten zu lesen. Jetzt heißt es „translate the text that is already visible …
-do not add text anywhere, and leave surfaces that have no text on them blank",
-und die Flasche bleibt glatt. Nachgemessen in beiden Sprachen.
+captions, **labels and signage**". Das lädt das Modell ein, jede Fläche als Ort
+für Etiketten zu lesen. So sieht das aus — spanischer Lauf mit dem alten
+Rezept:
+
+![Erfundenes Logo auf der Kleidung, veränderte Farbe, erfundene Zusatzzeile](failure-invented-branding.jpg)
+
+Die Übersetzung selbst stimmt („MANTENTE ALERTA"). Daneben aber: der Pullover
+ist von grau auf schwarz gewechselt, es klebt ein **erfundenes „SHARP"-Logo**
+darauf, und unten steht ein kompletter Satz, den nie jemand geschrieben hat
+(„Mantenerse hidratada es mi secreto."). In einem anderen Lauf mit demselben
+Rezept bekam die glatte schwarze Flasche einen verkrüppelten Schriftzug.
+
+Für eine Marke ist so ein Ergebnis nicht „fast richtig", sondern unbrauchbar —
+und auf den ersten Blick sieht es sauber aus. Genau deshalb steht „Buchstabe für
+Buchstabe prüfen" in der Checkliste.
+
+Das Rezept heißt jetzt „translate the text that is already visible … do not add
+text anywhere, and leave surfaces that have no text on them blank". Bilanz über
+alle Läufe: **altes Rezept 2 von 3 Läufen kaputt, neues 2 von 2 sauber**
+(Französisch und Deutsch oben). Kleine Stichprobe, aber ein klarer Mechanismus.
 
 **Der Prompt für `swap-background` musste ebenfalls nachgeschärft werden.** Eine frühere
 Fassung sagte sinngemäß „Hauptmotiv und Kamerafahrt behalten, Licht an die neue
