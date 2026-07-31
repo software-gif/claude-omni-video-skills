@@ -38,6 +38,19 @@ python3 scripts/omni.py swap-background \
   --out ./out
 ```
 
+Diese vier Läufe entstanden einzeln. Heute würde man dieselbe Reihe als **einen**
+Befehl aufrufen — `--to`, `--angle` und `--lang` sind wiederholbar, der Clip wird
+dann einmal statt viermal hochgeladen und am Ende entsteht zusätzlich ein
+`…-overview.jpg` über alle Varianten:
+
+```bash
+python3 scripts/omni.py swap-background --input examples/source.mp4 \
+  --to "a snowy alpine village street at dusk with warm shop lights" \
+  --to "a rainy Tokyo side street at night" \
+  --to "a Miami boardwalk at golden hour" \
+  --out ./out
+```
+
 ## Was in diesen Läufen auffällt
 
 **`change-angle` hat eine Handlung erfunden.** In der Quelle hält die Frau die
