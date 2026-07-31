@@ -11,8 +11,8 @@ Zielsprachen und die Tabus. Frag nicht nach etwas, das dort schon steht.
 
 ## Bevor du Geld ausgibst
 
-Ein Edit kostet gemessen rund **0,15 $ pro Sekunde** Cliplänge, und **jede
-Variante ist ein eigener Aufruf** — vier Märkte aus einem 8-s-Clip sind ~4,80 $. Bei mehr als
+Ein Edit kostet gemessen rund **0,25 $ pro Sekunde** Cliplänge, und **jede
+Variante ist ein eigener Aufruf** — vier Märkte aus einem 8-s-Clip sind ~8 $. Bei mehr als
 etwa drei Varianten erst `--dry-run` zeigen und eine Bestätigung abwarten. Nie
 ungefragt einen großen Batch starten.
 

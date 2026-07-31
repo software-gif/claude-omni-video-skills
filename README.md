@@ -182,24 +182,24 @@ steht in [`examples/README.md`](examples/README.md).
 
 **Die 0,13 $ pro Sekunde auf der fal-Modellseite sind nur der Ausgabe-Anteil.**
 Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den Clip, der
-hineingeht, und liegt damit darüber. Über 28 Läufe am Kontostand gemessen:
+hineingeht — in der Summe rund das Doppelte.
 
-| Messung | Ergebnis |
-|---|---|
-| Vier 5-Sekunden-Edits | 2,92 $ gesamt → **0,146 $/s** |
-| 24 Läufe gemischt | 31,08 $ gesamt → **0,162 $/s** |
+Gemessen über eine ganze Session mit 29 Läufen: **51,45 $ verbraucht**, also
+**~1,80 $ pro Lauf** auf 5- bis 8-Sekunden-Clips, gut **0,25 $ pro Sekunde**.
 
-Als Faustwert also **~0,15 $ pro Sekunde**, rund 15 % über dem Listenwert.
-Einzelne Läufe streuen; eine Einzelmessung ergab 0,213 $/s und war ein
-Ausreißer. Das gilt pro Variante, nicht pro Befehl:
+> **Miss das nicht kurz nach einem Lauf nach.** fals Kontostand-Endpoint hinkt
+> der Abrechnung hinterher. Zwei Schätzungen, die so entstanden sind (0,213 und
+> 0,146 $/s), lagen beide zu niedrig — die zweite um mehr als die Hälfte.
+> Verlässlich ist nur Gesamtverbrauch geteilt durch Gesamtlaufzeit.
+
+Das gilt pro Variante, nicht pro Befehl:
 
 | | |
 |---|---|
-| Ein Clip, eine Variante, 5 s | ~0,75 $ |
-| Derselbe Clip in 8 s | ~1,20 $ |
-| Vier Märkte aus 5 s | ~3,00 $ |
-| Vier Märkte aus 8 s | ~4,80 $ |
-| Text-to-Video (`create`, 8 s) | ~1,04 $ (kein Input-Video) |
+| Ein Clip, eine Variante, 5 s | ~1,25 $ |
+| Derselbe Clip in 8 s | ~2,00 $ |
+| Vier Märkte aus 5 s | ~5,00 $ |
+| Vier Märkte aus 8 s | ~8,00 $ |
 
 **Der wirksamste Sparhebel ist die Schere, nicht das Modell.** Bezahlt wird
 Input *und* Ausgabe, beides skaliert mit der Länge — und der Input zusätzlich

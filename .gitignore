@@ -6,3 +6,4 @@ runs/
 .cache/
 .DS_Store
 test/
+test-sn/

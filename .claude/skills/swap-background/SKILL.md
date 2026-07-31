@@ -126,10 +126,11 @@ and keep it to one or two sentences.
 
 ## Notes
 
-- Cost, measured rather than quoted: about **0.15 USD per second** of clip
-  length, averaged over 28 runs. The 0.13 USD/s on fal's model page is the
+- Cost, measured rather than quoted: about **0.25 USD per second** of clip
+  length — 51.45 USD across 29 runs. The 0.13 USD/s on fal's model page is the
   output share only; an edit also pays input tokens for the clip going in.
-  Individual runs vary. A shorter source is cheaper.
+  Do not verify this by reading the balance right after a run: fal's balance
+  endpoint lags and will understate it. A shorter source is cheaper.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one. Omni does not upscale.
 - The edit endpoint takes **text only** — you cannot hand it a reference photo
