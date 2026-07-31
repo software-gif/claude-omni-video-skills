@@ -82,9 +82,16 @@ by side. **Read those images** and check, in this order:
 3. **Branding survived.** Logos and label text on the object are the first
    thing to smear when the surface is re-rendered. Look at them at full size.
    If the product carries small print, expect it to break at 720p — say so.
-4. **The finish is physically plausible in that light** — chrome that does not
+4. **Burned-in overlay text is still there — and still there at the end.**
+   Changing a material can drop unrelated on-screen text partway through the
+   clip. In a two-colourway batch the brushed-steel take lost its "STAY SHARP"
+   overlay from the middle of the clip onwards while the forest-green take from
+   the same command kept it. Nothing was garbled, the words simply stopped
+   being there. Compare the middle and last tiles of the contact sheet against
+   the source row; the first frame will look fine either way.
+5. **The finish is physically plausible in that light** — chrome that does not
    reflect the room reads as a flat grey sticker.
-5. **Motion intact** — the object still moves the way it did.
+6. **Motion intact** — the object still moves the way it did.
 
 If branding breaks and the shot matters, this is the point to say the honest
 thing: use it for internal look-tests, not as a finished asset.

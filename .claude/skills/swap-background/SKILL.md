@@ -76,8 +76,12 @@ writes `…-overview.jpg` across all variants. **Read those images** and check:
 
 1. **Subject unchanged** — same person or product, same position in frame, same
    size. Background swaps are where identity drift shows up first.
-2. **Motion intact** — the camera move and the subject's movement are the ones
-   from the source, not a new invention.
+2. **Motion and action intact** — the camera move and what the subject *does*
+   are the ones from the source, not a new invention. This is not only a
+   `/change-angle` problem: in a four-market batch the Miami variant had the
+   subject start drinking from the bottle in the last third, while the Tokyo and
+   alpine variants from the same command did not. It shows up near the end, so
+   the first tile of the contact sheet always looks fine — check the last one.
 3. **Lighting** — read this one knowing the trade the recipe makes. Because the
    prompt locks the people and products, the light *on them* does not adapt to
    the new scene. That is deliberate: identity stability was worth more than

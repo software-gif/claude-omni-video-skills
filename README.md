@@ -142,7 +142,13 @@ python3 scripts/omni.py localize --input clip.mp4 \
 Jede Angabe ist ein eigener Modellaufruf — der Endpoint nimmt genau eine
 Anweisung, daran führt kein Weg vorbei. Das Skript nimmt dir die Schleife ab,
 lädt den Clip **einmal** statt einmal pro Variante hoch und legt am Ende
-`…-overview.jpg` an.
+`…-overview.jpg` an. So sieht das aus, ein Befehl, vier Märkte:
+
+![Quelle plus Tokio, Alpendorf, Miami und Studio](examples/batch-markets.jpg)
+
+Und dieselbe Mechanik als Colourway-Reihe, zum Vergleichen auf einer Seite:
+
+![Schwarz, gebürsteter Edelstahl, Waldgrün](examples/batch-colourways.jpg)
 
 Warum sich das lohnt: mehr Varianten heißt mehr Versuche heißt mehr Treffer.
 Und wenn etwas funktioniert, vervielfältigst du es, statt bei null anzufangen.
@@ -194,9 +200,13 @@ Kameramaterial, quer- und hochformatig, einzeln und im Batch.
   Ergebnis der ganzen Testreihe.
 - **Hochformat funktioniert.** 9:16 rein, 9:16 raus, Person und eingebrannter
   Text unangetastet.
-- **`change-angle` erfindet gelegentlich eine Handlung.** Im Beispiel hält die
-  Person die Flasche neben die Schulter — im Over-the-Shoulder-Take trinkt sie
-  daraus. Als B-Roll brauchbar, als Schnittgegenstück zum Original nicht.
+- **Das Modell erfindet gelegentlich eine Handlung, und nicht nur bei
+  `change-angle`.** Im Over-the-Shoulder-Take trinkt die Person aus der Flasche,
+  die sie in der Quelle nur hochhält. Dasselbe passierte im Vier-Markt-Batch: bei
+  Miami trinkt sie im letzten Drittel, bei Tokio und Alpendorf aus demselben
+  Befehl nicht. Grob jeder dritte bis vierte Lauf. Als B-Roll brauchbar, als
+  Schnittgegenstück zum Original nicht — und weil es am Ende des Clips passiert,
+  sieht das erste Bild immer gut aus.
 - **Vage Kadrierungswörter liefern vage Kadrierungen.** „a closer shot of the
   main subject" kam zweimal hintereinander als praktisch unveränderte
   Einstellung zurück — Wiederholen half nicht. Erst „framing only … filling the
@@ -206,6 +216,11 @@ Kameramaterial, quer- und hochformatig, einzeln und im Batch.
 - **Nahaufnahmen halten nicht über die volle Länge.** Der enge Ausschnitt war am
   Anfang am stärksten und lockerte sich zum Ende Richtung Originalkadrierung.
   Deshalb im Kontaktblatt das letzte Bild ansehen, nicht nur das erste.
+- **Eingebrannter Text kann mitten im Clip verschwinden.** Bei einer
+  Colourway-Reihe verlor der Edelstahl-Lauf sein „STAY SHARP" ab der Bildmitte,
+  während der grüne Lauf aus demselben Befehl es behielt. Nichts war verzerrt,
+  die Wörter waren einfach weg. Das erste Bild sieht in beiden Fällen gut aus —
+  deshalb gehört der Blick auf Mitte und Ende zur Prüfung.
 - **Übersetzungen schwanken zwischen Läufen.** Dasselbe „STAY SHARP" wurde
   einmal „BLEIB SMART" und einmal „BLEIBE SCHARF" — beides korrekt, aber wenn
   eine bestimmte Formulierung stehen muss, prüfen und gegebenenfalls wiederholen.

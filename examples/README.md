@@ -51,6 +51,29 @@ python3 scripts/omni.py swap-background --input examples/source.mp4 \
   --out ./out
 ```
 
+## Ein Befehl, vier Märkte
+
+Der Batch-Fall, um den es eigentlich geht. `--to` viermal angegeben, ein Upload,
+vier Aufrufe, am Ende dieses Bild:
+
+![Quelle plus Tokio, Alpendorf, Miami und Studio](batch-markets.jpg)
+
+Drei der vier sind einwandfrei: Person, Kleidung, Produkt und der eingebrannte
+Text unverändert, Tokio sogar mit Regentropfen auf der Kapuze. **Miami ist der
+Ausreißer** — dort beginnt die Person im letzten Drittel aus der Flasche zu
+trinken, eine Handlung, die es in der Quelle nicht gibt. Auf diesem
+Überblicksbild sieht man das nicht, weil es die Bildmitte zeigt; im
+Einzel-Kontaktblatt `markets-a-miami-boardwalk-*-compare.jpg` steht es rechts
+unten. Genau dafür gibt es beide Bilder.
+
+Dieselbe Mechanik als Colourway-Reihe:
+
+![Schwarz, gebürsteter Edelstahl, Waldgrün](batch-colourways.jpg)
+
+Auch hier ein Detail, das nur im Einzelblatt auffällt: der Edelstahl-Lauf hat
+den eingebrannten Text ab der Bildmitte verloren, der grüne aus demselben
+Befehl nicht.
+
 ## Batch, Hochformat, Nahaufnahme
 
 Später dazugekommen, alle drei aus echten Läufen.
