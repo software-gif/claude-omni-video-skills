@@ -338,6 +338,17 @@ def overview_strip(source, outputs, target, work_dir):
         return None
 
 
+# Fehler, bei denen jeder weitere Aufruf im Batch genauso scheitern würde.
+# Ein Zehner-Batch soll nicht zehnmal gegen ein leeres Konto laufen.
+FATAL = ("exhausted balance", "user is locked", "invalid key", "unauthorized",
+         "forbidden", "401", "403", "not available", "in your region")
+
+
+def is_fatal(message):
+    low = message.lower()
+    return any(marker in low for marker in FATAL)
+
+
 def run_once(fal_client, endpoint, arguments, label):
     print(f"  {label}Omni läuft …", flush=True)
     started = time.time()
@@ -450,9 +461,14 @@ def main():
     base = args.name or args.command
     written, manifest = [], []
     step = 0
+    aborted = None
 
     for slug, prompt in jobs:
+        if aborted:
+            break
         for run in range(1, args.runs + 1):
+            if aborted:
+                break
             step += 1
             label = f"[{step}/{total}] " if total > 1 else ""
             stem = args.name if (args.name and len(jobs) == 1) else f"{base}-{slug}"
@@ -473,6 +489,13 @@ def main():
                 if "not available" in message.lower() or "region" in message.lower():
                     print("  Hinweis: Google sperrt den Video-Edit hochgeladener Clips in "
                           "EWR/UK/CH. Siehe README, Abschnitt Grenzen.")
+                if is_fatal(message):
+                    aborted = message
+                    remaining = total - step
+                    print(f"  Abbruch: Das betrifft den Zugang selbst, nicht diese Variante. "
+                          f"{remaining} weitere Aufruf(e) übersprungen.\n"
+                          f"  Guthaben und Key prüfen: https://fal.ai/dashboard/billing")
+                    break
                 continue
 
             target = download(video["url"], out_dir / f"{stem}.mp4")
