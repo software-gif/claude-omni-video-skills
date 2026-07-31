@@ -126,7 +126,13 @@ video look like winter." gegengetestet — auch blockiert. Derselbe Prompt ohne
 hochgeladenes Video läuft dagegen durch.
 
 Dahinter steckt die EWR/Schweiz/UK-Sperre für das Bearbeiten hochgeladener
-Videos. Lösung: über fal gehen, so wie dieses Repo es tut.
+Videos. Was dort erlaubt bleibt: Videos zu bearbeiten, die das Modell selbst
+erzeugt hat (per `previous_interaction_id` verkettet) — nachgetestet, läuft.
+Für eigenes Drehmaterial hilft das aber nicht, und genau darum geht es hier.
+
+Lösung: über fal gehen, so wie dieses Repo es tut. Kostenvorteil hätte der
+Direktweg ohnehin keinen: 0,142 USD/s laut Googles eigener Token-Abrechnung
+gegenüber gemessenen 0,150 über fal.
 
 ### Etwas mit „not available in your region"
 
