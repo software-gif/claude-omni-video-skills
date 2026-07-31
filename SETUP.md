@@ -31,7 +31,9 @@ Das ist der halbe Nutzen.
 
 Der Key kommt von [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys).
 fal ist der Anbieter, über den Gemini Omni läuft; hier entstehen auch die
-Kosten. Lade dort etwas Guthaben auf, ein Lauf kostet rund 1 $.
+Kosten. Lade dort etwas Guthaben auf: ein Lauf auf einem 8-Sekunden-Clip kostet
+gemessene **1,71 $**, ein 5-Sekunden-Clip rund 1,07 $. Für einen ersten
+Durchgang durch alle vier Skills solltest du also etwa 10 $ einplanen.
 
 ```bash
 cp .env.example .env

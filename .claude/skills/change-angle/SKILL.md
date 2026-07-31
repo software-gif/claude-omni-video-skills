@@ -117,8 +117,9 @@ Short on purpose otherwise. Two things to avoid:
 
 ## Notes
 
-- Cost is time-based: roughly **0.13 USD per second** of 720p output — about **1 USD**
-  for an 8-second clip.
+- Cost, measured rather than quoted: an 8-second edit costs **1.71 USD**, i.e.
+  **0.213 USD per second** — the 0.13 USD/s on fal's model page is the output
+  share only. A shorter or smaller source is cheaper.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one.
 - Angles that require inventing a lot of unseen geometry (a full 180° reverse)

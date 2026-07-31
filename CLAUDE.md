@@ -11,9 +11,13 @@ Zielsprachen und die Tabus. Frag nicht nach etwas, das dort schon steht.
 
 ## Bevor du Geld ausgibst
 
-Jeder Modellaufruf kostet rund 1 $, und **jede Variante ist ein eigener
-Aufruf**. Bei mehr als etwa drei Varianten erst `--dry-run` zeigen und eine
-Bestätigung abwarten. Nie ungefragt einen großen Batch starten.
+Ein Edit auf einem 8-Sekunden-Clip kostet gemessene **1,71 $**, und **jede
+Variante ist ein eigener Aufruf** — vier Märkte sind knapp 7 $. Bei mehr als
+etwa drei Varianten erst `--dry-run` zeigen und eine Bestätigung abwarten. Nie
+ungefragt einen großen Batch starten.
+
+Wenn der Quellclip länger ist als nötig: vorher kürzen vorschlagen. Bezahlt
+werden Input und Ausgabe, beides skaliert mit der Länge.
 
 ## Nach jedem Lauf
 

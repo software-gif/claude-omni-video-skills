@@ -126,8 +126,10 @@ and keep it to one or two sentences.
 
 ## Notes
 
-- Cost is time-based: roughly **0.13 USD per second** of 720p output. An 8-second
-  clip is about **1 USD** per run.
+- Cost, measured rather than quoted: an 8-second edit costs **1.71 USD**, i.e.
+  **0.213 USD per second**. The 0.13 USD/s on fal's model page is the output
+  share only; an edit also pays input tokens for the clip going in. A shorter or
+  smaller source is cheaper.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one. Omni does not upscale.
 - The edit endpoint takes **text only** — you cannot hand it a reference photo

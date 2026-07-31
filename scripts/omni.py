@@ -33,8 +33,14 @@ import urllib.request
 ENDPOINT_EDIT = "google/gemini-omni-flash/edit"
 ENDPOINT_CREATE = "google/gemini-omni-flash"
 
-# Preis laut fal-Modellseite: ~0,13 $ pro Sekunde 720p-Video.
-USD_PER_SECOND = 0.13
+# Die fal-Modellseite nennt ~0,13 $ pro Sekunde 720p-Video. Das ist der
+# AUSGABE-Anteil. Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den
+# Clip, der hineingeht — gemessen an einem 8-Sekunden-Clip in 1280×720 kostet
+# ein Edit 1,71 $, also 0,213 $ pro Sekunde. Der Aufschlag hängt an der Größe
+# der Quelle: mehr Pixel und mehr Sekunden rein heißt mehr Input-Tokens.
+# Für Text-to-Video (kein Input-Video) bleibt der Richtwert der Modellseite.
+USD_PER_SECOND_EDIT = 0.213      # gemessen
+USD_PER_SECOND_CREATE = 0.13     # Angabe der Modellseite, nicht separat gemessen
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -304,6 +310,19 @@ def _duration(path):
         return None
 
 
+def source_seconds(source):
+    """Länge der Quelle, wenn sie lokal vorliegt und ffprobe da ist.
+
+    Damit die Kostenschätzung den echten Clip meint und nicht pauschal 8 s.
+    """
+    if not source or source.startswith(("http://", "https://", "data:")):
+        return None
+    if not shutil.which("ffprobe"):
+        return None
+    path = pathlib.Path(source).expanduser()
+    return _duration(path) if path.exists() else None
+
+
 def _grab(path, seconds, target, height=360):
     subprocess.run(
         ["ffmpeg", "-v", "error", "-y", "-ss", f"{max(seconds, 0):.2f}", "-i", str(path),
@@ -540,9 +559,15 @@ def main():
     for slug, prompt in jobs:
         print(f"\n  [{slug}]\n  {prompt}")
 
-    seconds = args.duration if args.command == "create" else 8
-    print(f"\n  {total} Modellaufruf(e), grob ${USD_PER_SECOND * seconds * total:.2f} "
-          f"bei {seconds} s Video.")
+    if args.command == "create":
+        seconds, rate, basis = args.duration, USD_PER_SECOND_CREATE, "Text-to-Video"
+    else:
+        seconds, rate, basis = source_seconds(args.input) or 8, USD_PER_SECOND_EDIT, "Video-Edit"
+    print(f"\n  {total} Modellaufruf(e) × {seconds:.0f} s ({basis}) "
+          f"≈ {rate * seconds * total:.2f} USD")
+    if args.command != "create":
+        print(f"  Grundlage: gemessene {rate:.3f} USD/s. Kürzere oder kleinere "
+              f"Quellclips kosten weniger.")
 
     if args.dry_run:
         print("  Dry run, es wurde nichts ausgegeben.")

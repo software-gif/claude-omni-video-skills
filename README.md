@@ -180,27 +180,36 @@ steht in [`examples/README.md`](examples/README.md).
 
 ## Kosten
 
-Abgerechnet wird **nach Sekunde**: laut fal-Modellseite rund 0,13 $ pro Sekunde
-720p-Video. Das gilt pro Variante, nicht pro Befehl.
+**Die 0,13 $ pro Sekunde auf der fal-Modellseite sind nur der Ausgabe-Anteil.**
+Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den Clip, der
+hineingeht. Nachgemessen an einem 8-Sekunden-Clip in 1280×720, Kontostand vor
+und nach genau einem Lauf:
+
+> **1,71 USD** für einen 8-Sekunden-Edit — also **0,213 USD pro Sekunde**,
+> rund zwei Drittel über dem Listenwert.
+
+Das gilt pro Variante, nicht pro Befehl:
 
 | | |
 |---|---|
-| Ein Clip, eine Variante, 8 s | ~1,04 $ |
-| Derselbe Clip auf 5 s gekürzt | ~0,65 $ |
-| Vier Märkte aus einem 8-s-Dreh | ~4,16 $ |
-| Vier Märkte aus 5 s | ~2,60 $ |
+| Ein Clip, eine Variante, 8 s | ~1,71 $ |
+| Derselbe Clip auf 5 s gekürzt | ~1,07 $ |
+| Vier Märkte aus einem 8-s-Dreh | ~6,82 $ |
+| Vier Märkte aus 5 s | ~4,26 $ |
+| Text-to-Video (`create`, 8 s) | ~1,04 $ (kein Input-Video) |
 
-**Der wirksamste Sparhebel ist die Schere, nicht das Modell.** Die Ausgabe ist
-so lang wie die Quelle, und abgerechnet wird pro Sekunde — wer vorher auf die
-Sekunden kürzt, die er wirklich braucht, zahlt bei jedem Lauf und jeder Variante
-entsprechend weniger:
+**Der wirksamste Sparhebel ist die Schere, nicht das Modell.** Bezahlt wird
+Input *und* Ausgabe, beides skaliert mit der Länge — und der Input zusätzlich
+mit der Auflösung der Quelle. Wer vorher auf die Sekunden kürzt, die er
+wirklich braucht, zahlt bei jedem Lauf und jeder Variante entsprechend weniger:
 
 ```bash
 ffmpeg -i clip.mp4 -t 5 -c:v libx264 -crf 20 clip-5s.mp4
 ```
 
-`--dry-run` zeigt den kompletten Plan mit Prompt und Größenordnung, ohne etwas
-auszugeben. Bei Batches über etwa drei Varianten lohnt sich das immer.
+`--dry-run` zeigt den kompletten Plan mit Prompt und Kostenschätzung, ohne etwas
+auszugeben — und liest dafür die echte Länge deines Clips aus, statt pauschal zu
+rechnen. Bei Batches über etwa drei Varianten lohnt sich das immer.
 
 ## Grenzen — ehrlich
 
