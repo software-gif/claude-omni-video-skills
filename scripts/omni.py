@@ -349,16 +349,56 @@ def is_fatal(message):
     return any(marker in low for marker in FATAL)
 
 
+# Ein Lauf dauert normal 40 bis 90 Sekunden. Nach dieser Grenze stimmt etwas
+# nicht, und Warten hilft nicht mehr.
+RUN_TIMEOUT = 600
+POLL_EVERY = 5
+
+
 def run_once(fal_client, endpoint, arguments, label):
+    """Absenden, Status pollen, Ergebnis holen.
+
+    Bewusst NICHT handle.get(): das hängt an einem Event-Stream und ist in
+    einem echten Lauf hängen geblieben, obwohl fal den Request längst als
+    COMPLETED geführt und das Video bereitgestellt hatte. status() und result()
+    sind einfache HTTP-Aufrufe. Nebenbei gibt es so ein Lebenszeichen und ein
+    Zeitlimit, statt im Zweifel ewig stillzustehen.
+    """
     print(f"  {label}Omni läuft …", flush=True)
     started = time.time()
     handle = fal_client.submit(endpoint, arguments=arguments)
-    print(f"  {label}request {handle.request_id}", flush=True)
-    result = handle.get()
-    video = result.get("video") or {}
+    request_id = handle.request_id
+    print(f"  {label}request {request_id}", flush=True)
+
+    last_note = 0.0
+    while True:
+        elapsed = time.time() - started
+        try:
+            status = fal_client.status(endpoint, request_id)
+        except Exception as exc:  # noqa: BLE001 — einzelner Statusabruf darf scheitern
+            status = None
+            if elapsed > 60:
+                print(f"  {label}Status nicht abrufbar ({type(exc).__name__}), versuche weiter …",
+                      flush=True)
+
+        if isinstance(status, fal_client.Completed):
+            break
+        if elapsed > RUN_TIMEOUT:
+            raise TimeoutError(
+                f"Nach {RUN_TIMEOUT}s kein Ergebnis. Request {request_id} lässt sich später "
+                f"noch abholen: fal_client.result('{endpoint}', '{request_id}')"
+            )
+        if elapsed - last_note >= 30:
+            last_note = elapsed
+            state = type(status).__name__ if status else "unbekannt"
+            print(f"  {label}… {int(elapsed)}s ({state})", flush=True)
+        time.sleep(POLL_EVERY)
+
+    result = fal_client.result(endpoint, request_id)
+    video = (result or {}).get("video") or {}
     if not video.get("url"):
         raise RuntimeError(f"Kein Video in der Antwort: {json.dumps(result)[:400]}")
-    return video, time.time() - started, handle.request_id
+    return video, time.time() - started, request_id
 
 
 # --------------------------------------------------------------------------
