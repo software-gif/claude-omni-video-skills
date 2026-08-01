@@ -200,6 +200,19 @@ python3 scripts/omni.py create \
 So ist der Beispielclip in `examples/` entstanden — der vollständige Prompt
 steht in [`examples/README.md`](examples/README.md).
 
+## Vorher prüfen, statt hinterher zu rätseln
+
+```bash
+python3 scripts/selftest.py
+```
+
+Kostet nichts und beantwortet die Fragen, an denen ein erster Versuch
+typischerweise scheitert: richtiger Python, ffmpeg da, Key gefunden, wie viel
+Guthaben für wie viele Läufe — und ob die Prompt-Rezepte im Code noch mit dem
+übereinstimmen, was die `SKILL.md`-Dateien behaupten. Genau diese Abweichung
+gab es in diesem Repo schon einmal, und eine Doku, die ein anderes Rezept
+zitiert als der Code ausführt, ist schlimmer als keine.
+
 ## Kosten
 
 **Die 0,13 $ pro Sekunde auf der fal-Modellseite sind nur der Ausgabe-Anteil.**

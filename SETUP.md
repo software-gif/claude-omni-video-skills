@@ -65,7 +65,20 @@ und Sprache auszuformulieren — Claude liest die Datei und schreibt den Aufruf.
 
 Überspringbar, aber dann beantwortest du dieselben Fragen bei jedem Lauf.
 
-## 5 · Erster Lauf
+## 5 · Einrichtung prüfen
+
+Bevor du zum ersten Mal Geld ausgibst:
+
+```bash
+python3 scripts/selftest.py
+```
+
+Das kostet nichts — kein einziger Modellaufruf. Geprüft werden Python und
+fal-client, ffmpeg, ob der Key gefunden wird, dein Guthaben samt der Anzahl
+Läufe, die es reicht, sowie alle sieben Kommandos im Trockenlauf. Jede
+Fehlermeldung sagt dazu, was zu tun ist.
+
+## 6 · Erster Lauf
 
 Claude Code im Repo-Ordner starten und einen der Befehle aufrufen:
 
