@@ -238,8 +238,9 @@ rechnen. Bei Batches über etwa drei Varianten lohnt sich das immer.
 
 ## Grenzen — ehrlich
 
-Gemessen über rund 17 echte Läufe: KI-erzeugtes Ausgangsmaterial und echtes
-Kameramaterial, quer- und hochformatig, einzeln und im Batch.
+Gemessen über 29 echte Läufe: KI-erzeugtes Ausgangsmaterial und echtes
+Kameramaterial, quer- und hochformatig, einzeln und im Batch, mit mehreren
+direkten A/B-Vergleichen zwischen Prompt-Varianten.
 
 - **Echtes Drehmaterial läuft mindestens so gut wie KI-Material.** Das war die
   größte offene Frage, weil die ersten Messungen alle an einem generierten Clip
