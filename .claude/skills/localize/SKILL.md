@@ -24,6 +24,15 @@ nobody has to remember that the wordmark must not be translated.
 
 **The source must be a file path on disk or a public URL.**
 
+**No video, only product photos?** That is the common case, not an edge case.
+Point them at `animate`: a packshot plus a motion description becomes the source
+clip, and this skill then runs on that.
+
+```bash
+python3 scripts/omni.py animate --image packshot.jpg \
+  --prompt "slow push-in on the product, soft studio light" --aspect 9:16 --duration 5
+```
+
 Then two things:
 
 - **`--lang`** — the target language, written in English: `German`, `French`,

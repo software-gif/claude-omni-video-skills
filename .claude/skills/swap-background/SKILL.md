@@ -26,6 +26,15 @@ filling in `brand/brand.md` means not having to answer this every time.
 **The source must be a file path on disk or a public URL.** The script cannot
 read a clip that was pasted into the chat; ask for the path.
 
+**No video, only product photos?** That is the common case, not an edge case.
+Point them at `animate`: a packshot plus a motion description becomes the source
+clip, and this skill then runs on that.
+
+```bash
+python3 scripts/omni.py animate --image packshot.jpg \
+  --prompt "slow push-in on the product, soft studio light" --aspect 9:16 --duration 5
+```
+
 Then get the one variable: the new setting. Push for something concrete. "A
 different city" produces a generic result; *"a rainy Tokyo side street at night,
 neon reflections on wet asphalt"* produces a usable one.

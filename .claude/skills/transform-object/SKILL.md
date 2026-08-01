@@ -23,6 +23,15 @@ appear.
 
 **The source must be a file path on disk or a public URL.**
 
+**No video, only product photos?** That is the common case, not an edge case.
+Point them at `animate`: a packshot plus a motion description becomes the source
+clip, and this skill then runs on that.
+
+```bash
+python3 scripts/omni.py animate --image packshot.jpg \
+  --prompt "slow push-in on the product, soft studio light" --aspect 9:16 --duration 5
+```
+
 Two variables, and both need to be precise:
 
 **`--object`** — how the model finds the thing. Use the plainest visual
