@@ -2,22 +2,32 @@
 """
 omni.py — ein Clip rein, viele Varianten raus.
 
-Ruft Gemini Omni Flash über fal.ai auf. Jede Skill in .claude/skills/ ist ein
-Wrapper um genau ein Unterkommando hier.
+Ruft Gemini Omni Flash direkt bei Google auf (kein fal, kein SDK). Jede Skill
+in .claude/skills/ ist ein Wrapper um genau ein Unterkommando hier.
 
-    python3 scripts/omni.py swap-background  --input clip.mp4 --to "a rainy Tokyo street" --to "an alpine village"
-    python3 scripts/omni.py change-angle     --input clip.mp4 --angle wide --angle close-up
-    python3 scripts/omni.py transform-object --input clip.mp4 --object "the bottle" --to "brushed chrome"
-    python3 scripts/omni.py localize         --input clip.mp4 --lang German --lang French
-    python3 scripts/omni.py raw              --input clip.mp4 --prompt "..."
-    python3 scripts/omni.py create           --prompt "..." --aspect 9:16 --duration 8
-    python3 scripts/omni.py animate          --image packshot.jpg --prompt "slow orbit around the jar"
+    python3 scripts/omni.py create           --prompt "..." --aspect 9:16
+    python3 scripts/omni.py animate          --image packshot.jpg --prompt "slow orbit"
+    python3 scripts/omni.py swap-background  --input out/clip.mp4 --to "a rainy Tokyo street"
+    python3 scripts/omni.py change-angle     --input out/clip.mp4 --angle wide --angle close-up
+    python3 scripts/omni.py transform-object --input out/clip.mp4 --object "the jar" --to "frosted glass"
+    python3 scripts/omni.py localize         --input out/clip.mp4 --lang German --lang French
+    python3 scripts/omni.py raw              --input out/clip.mp4 --prompt "..."
 
---to, --angle und --lang sind wiederholbar. Jede Angabe ist ein eigener
-Modellaufruf; das Skript rendert sie nacheinander und legt am Ende einen
-Überblicksstreifen über alle Varianten an.
+--to, --angle und --lang sind wiederholbar; jede Angabe ist ein eigener Aufruf.
 
-Env: FAL_KEY (https://fal.ai/dashboard/keys) — in .env neben dem Repo oder exportiert.
+WICHTIG ZUR HERKUNFT DES CLIPS
+Google erlaubt aus EWR, Schweiz und UK das Bearbeiten *hochgeladener* Videos
+nicht — nachgemessen, mit korrekter Payload und harmlosem Prompt. Erlaubt ist
+das Bearbeiten von Clips, die das Modell selbst erzeugt hat.
+
+Deshalb arbeiten die vier Skills auf Ergebnissen von `create` oder `animate`:
+Jeder Lauf schreibt seine interaction id in die Manifest-Datei neben dem Video,
+und --input findet sie dort von selbst. Du hantierst nie mit IDs.
+
+    python3 scripts/omni.py animate --image packshot.jpg --prompt "slow orbit" --out ./out
+    python3 scripts/omni.py swap-background --input out/animate-*.mp4 --to "..."
+
+Env: GEMINI_API_KEY (https://aistudio.google.com/apikey) — in .env neben dem Repo.
 """
 
 import argparse
@@ -28,29 +38,25 @@ import re
 import shutil
 import subprocess
 import sys
-import time
-import urllib.request
 
-ENDPOINT_EDIT = "google/gemini-omni-flash/edit"
-ENDPOINT_CREATE = "google/gemini-omni-flash"
-ENDPOINT_ANIMATE = "google/gemini-omni-flash/image-to-video"
-
-# Die fal-Modellseite nennt ~0,13 $ pro Sekunde 720p-Video. Das ist der
-# AUSGABE-Anteil. Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den
-# Clip, der hineingeht, und kommt damit auf ungefähr das Doppelte.
-#
-# ACHTUNG BEI EIGENEN MESSUNGEN: fals Kontostand-Endpoint hinkt der Abrechnung
-# hinterher. Direkt nach einem Lauf abgelesen, unterschätzt er die Kosten
-# deutlich — zwei so entstandene Schätzungen (0,213 und 0,146 $/s) waren beide
-# zu niedrig. Verlässlich ist nur Gesamtverbrauch geteilt durch Gesamtlaufzeit,
-# lange nach dem letzten Lauf abgelesen.
-#
-# So gemessen über 29 Läufe: 51,45 $ verbraucht, also rund 1,80 $ pro Lauf auf
-# 5- bis 8-Sekunden-Clips. Der Wert unten ist bewusst konservativ gerundet.
-USD_PER_SECOND_EDIT = 0.25       # gemessen über eine ganze Session
-USD_PER_SECOND_CREATE = 0.13     # Angabe der Modellseite, nicht separat gemessen
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import google_omni as api  # noqa: E402
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# Schätzwerte für --dry-run. Abgerechnet wird nach Tokens, und jeder fertige
+# Lauf weist seinen ECHTEN Preis aus den mitgelieferten Zahlen aus — diese
+# Konstanten dienen nur der Vorschau.
+# Gemessen: ~5.900 Ausgabe-Tokens je Sekunde Video, ~5.800 Eingabe-Tokens je
+# Sekunde bei einem Video als Eingabe.
+TOKENS_OUT_PER_SECOND = 5900
+TOKENS_IN_PER_SECOND = 5800
+
+
+def estimate(seconds, with_video_input):
+    out = seconds * TOKENS_OUT_PER_SECOND * api.USD_PER_OUTPUT_TOKEN
+    inp = seconds * TOKENS_IN_PER_SECOND * api.USD_PER_INPUT_TOKEN if with_video_input else 0
+    return out + inp
 
 
 # --------------------------------------------------------------------------
@@ -62,7 +68,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 #
 #   1. die eine Änderung
 #   2. ein kurzer Lock-Satz gegen die für diesen Job typische Drift
-#   3. "Keep everything else the same."  (von fal empfohlen, wirkt messbar)
+#   3. "Keep everything else the same."  (aus Googles Prompt-Hinweisen, wirkt messbar)
 #
 # Der Markenkontext gehört ausdrücklich NICHT hier hinein. Er steuert, welchen
 # Text Claude in --to schreibt, nicht wie lang der Prompt wird. Siehe
@@ -163,19 +169,6 @@ def plan(args):
 # --------------------------------------------------------------------------
 
 
-def load_key():
-    if os.environ.get("FAL_KEY"):
-        return os.environ["FAL_KEY"]
-    for candidate in (REPO_ROOT / ".env", pathlib.Path.cwd() / ".env"):
-        if candidate.exists():
-            for line in candidate.read_text().splitlines():
-                line = line.strip()
-                if line.startswith("FAL_KEY=") and not line.startswith("#"):
-                    value = line.split("=", 1)[1].strip().strip('"').strip("'")
-                    if value:
-                        os.environ["FAL_KEY"] = value
-                        return value
-    return None
 
 
 def slugify(text, limit=48):
@@ -229,91 +222,9 @@ def claim_version(out_dir, stem, ext=".mp4"):
             version += 1
 
 
-def resolve_source(fal_client, source, work_dir):
-    """Gibt (url, lokaler Pfad) zurück. Lokale Datei wird hochgeladen,
-    entfernte Datei fürs Kontaktblatt einmal heruntergeladen."""
-    if source.startswith(("http://", "https://")):
-        local = work_dir / "source.mp4"
-        try:
-            download(source, local)
-        except Exception:  # noqa: BLE001 — nur fürs Kontaktblatt, nicht kritisch
-            local = None
-        return source, local
-    if source.startswith("data:"):
-        return source, None
-
-    path = pathlib.Path(source).expanduser()
-    if not path.exists():
-        sys.exit(f"Input nicht gefunden: {path}")
-
-    # Denselben Clip nicht bei jedem Lauf neu hochladen. fal antwortet auf zu
-    # viele Upload-Tokens hintereinander mit 403; ein Cache pro Datei und
-    # Änderungszeit spart Zeit, Bandbreite und genau diesen Fehler. Bei einem
-    # Batch über fünf Märkte wird so einmal hochgeladen statt fünfmal.
-    stat = path.stat()
-    fingerprint = f"{path.resolve()}::{stat.st_size}::{int(stat.st_mtime)}"
-    cache_dir = REPO_ROOT / ".cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = cache_dir / "uploads.json"
-    cache = {}
-    if cache_file.exists():
-        try:
-            cache = json.loads(cache_file.read_text())
-        except ValueError:
-            cache = {}
-    if fingerprint in cache:
-        print(f"  {path.name} bereits hochgeladen, nutze den Cache.", flush=True)
-        return cache[fingerprint], path
-
-    print(f"  Upload {path.name} ({stat.st_size / 1_048_576:.1f} MB) …", flush=True)
-    try:
-        url = fal_client.upload_file(str(path))
-    except Exception as exc:  # noqa: BLE001 — der Nutzer braucht den Grund, nicht den Stack
-        # fal schreibt den eigentlichen Grund in den Antwort-Body ("User is locked.
-        # Reason: Exhausted balance."). Der str() der Exception enthält nur URL und
-        # Status, also den Body herausziehen — sonst sieht man bloß ein nacktes 403.
-        detail = getattr(getattr(exc, "response", None), "text", "") or ""
-        sys.exit(
-            f"Upload fehlgeschlagen: {type(exc).__name__}: {exc}"
-            + (f"\n  fal sagt: {detail.strip()[:300]}" if detail else "")
-            + "\n  Häufigste Ursachen: aufgebrauchtes Guthaben (fal.ai/dashboard/billing), "
-            "ungültiger FAL_KEY, oder zu viele parallele Läufe.\n"
-            "  Alternativ --input mit einer öffentlichen URL aufrufen — das umgeht den Upload."
-        )
-
-    cache[fingerprint] = url
-    cache_file.write_text(json.dumps(cache, indent=2))
-    return url, path
 
 
-def resolve_image(fal_client, source):
-    """Packshot hochladen oder URL durchreichen.
 
-    Eigener Weg statt resolve_source: Ein Standbild braucht kein Kontaktblatt
-    und keinen Download für den Vergleich.
-    """
-    if source.startswith(("http://", "https://", "data:")):
-        return source
-    path = pathlib.Path(source).expanduser()
-    if not path.exists():
-        sys.exit(f"Bild nicht gefunden: {path}")
-    print(f"  Upload {path.name} ({path.stat().st_size / 1024:.0f} KB) …", flush=True)
-    try:
-        return fal_client.upload_file(str(path))
-    except Exception as exc:  # noqa: BLE001
-        detail = getattr(getattr(exc, "response", None), "text", "") or ""
-        sys.exit(
-            f"Upload fehlgeschlagen: {type(exc).__name__}: {exc}"
-            + (f"\n  fal sagt: {detail.strip()[:300]}" if detail else "")
-            + "\n  Guthaben und Key prüfen: https://fal.ai/dashboard/billing"
-        )
-
-
-def download(url, target):
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url) as response, open(target, "wb") as handle:
-        shutil.copyfileobj(response, handle)
-    return target
 
 
 # --- Kontaktblätter -------------------------------------------------------
@@ -341,17 +252,6 @@ def _duration(path):
         return None
 
 
-def source_seconds(source):
-    """Länge der Quelle, wenn sie lokal vorliegt und ffprobe da ist.
-
-    Damit die Kostenschätzung den echten Clip meint und nicht pauschal 8 s.
-    """
-    if not source or source.startswith(("http://", "https://", "data:")):
-        return None
-    if not shutil.which("ffprobe"):
-        return None
-    path = pathlib.Path(source).expanduser()
-    return _duration(path) if path.exists() else None
 
 
 def _grab(path, seconds, target, height=360):
@@ -458,83 +358,80 @@ def overview_strip(source, outputs, target, work_dir):
         return None
 
 
-# Fehler, bei denen jeder weitere Aufruf im Batch genauso scheitern würde.
-# Ein Zehner-Batch soll nicht zehnmal gegen ein leeres Konto laufen.
-FATAL = ("exhausted balance", "user is locked", "invalid key", "unauthorized",
-         "forbidden", "401", "403", "not available", "in your region")
 
 
-def is_fatal(message):
-    low = message.lower()
-    return any(marker in low for marker in FATAL)
 
-
-# Ein Lauf dauert normal 40 bis 90 Sekunden. Nach dieser Grenze stimmt etwas
-# nicht, und Warten hilft nicht mehr.
-RUN_TIMEOUT = 600
-POLL_EVERY = 5
-
-
-def run_once(fal_client, endpoint, arguments, label):
-    """Absenden, Status pollen, Ergebnis holen.
-
-    Bewusst NICHT handle.get(): das hängt an einem Event-Stream und ist in
-    einem echten Lauf hängen geblieben, obwohl fal den Request längst als
-    COMPLETED geführt und das Video bereitgestellt hatte. status() und result()
-    sind einfache HTTP-Aufrufe. Nebenbei gibt es so ein Lebenszeichen und ein
-    Zeitlimit, statt im Zweifel ewig stillzustehen.
-    """
-    print(f"  {label}Omni läuft …", flush=True)
-    started = time.time()
-    handle = fal_client.submit(endpoint, arguments=arguments)
-    request_id = handle.request_id
-    print(f"  {label}request {request_id}", flush=True)
-
-    last_note = 0.0
-    while True:
-        elapsed = time.time() - started
-        try:
-            status = fal_client.status(endpoint, request_id)
-        except Exception as exc:  # noqa: BLE001 — einzelner Statusabruf darf scheitern
-            status = None
-            if elapsed > 60:
-                print(f"  {label}Status nicht abrufbar ({type(exc).__name__}), versuche weiter …",
-                      flush=True)
-
-        if isinstance(status, fal_client.Completed):
-            break
-        if elapsed > RUN_TIMEOUT:
-            raise TimeoutError(
-                f"Nach {RUN_TIMEOUT}s kein Ergebnis. Request {request_id} lässt sich später "
-                f"noch abholen: fal_client.result('{endpoint}', '{request_id}')"
-            )
-        if elapsed - last_note >= 30:
-            last_note = elapsed
-            state = type(status).__name__ if status else "unbekannt"
-            print(f"  {label}… {int(elapsed)}s ({state})", flush=True)
-        time.sleep(POLL_EVERY)
-
-    result = fal_client.result(endpoint, request_id)
-    video = (result or {}).get("video") or {}
-    if not video.get("url"):
-        raise RuntimeError(f"Kein Video in der Antwort: {json.dumps(result)[:400]}")
-    return video, time.time() - started, request_id
 
 
 # --------------------------------------------------------------------------
 
 
+def resolve_source(source):
+    """Woher der Clip kommt und wie er bearbeitet werden darf.
+
+    Gibt (interaction_id, lokaler Pfad) zurück. Ist die id da, wird verkettet —
+    der einzige Weg, der aus dem EWR heraus erlaubt ist. Fehlt sie, versuchen
+    wir den Upload und melden die Sperre verständlich, falls sie greift.
+    """
+    path = pathlib.Path(source).expanduser()
+    if not path.exists():
+        sys.exit(f"Clip nicht gefunden: {path}")
+    manifest = path.with_suffix(".json")
+    if manifest.exists():
+        try:
+            entry = json.loads(manifest.read_text())
+            if entry.get("interaction_id"):
+                return entry["interaction_id"], path
+        except ValueError:
+            pass
+    return None, path
+
+
+def source_seconds(source):
+    """Länge der Quelle, wenn sie lokal vorliegt und ffprobe da ist."""
+    if not source or not shutil.which("ffprobe"):
+        return None
+    path = pathlib.Path(source).expanduser()
+    return _duration(path) if path.exists() else None
+
+
+def run_once(command, prompt, label, *, aspect=None, duration=None,
+             video_uri=None, image_path=None, interaction_id=None):
+    """Ein Omni-Aufruf. Gibt (Video-Bytes, Interaktion) zurück."""
+    task = {"create": "text_to_video", "animate": "image_to_video"}.get(command, "edit")
+    # Google kennt kein Dauer-Feld — die Länge wird im Prompt gesagt. Nur beim
+    # Erzeugen sinnvoll; ein Edit erbt die Länge der Quelle.
+    if duration and task != "edit":
+        prompt = f"{prompt.rstrip().rstrip('.')}. About {duration} seconds long."
+    # Bei task=edit lehnt Google ein gesetztes Seitenverhältnis ab; das Ergebnis
+    # erbt es ohnehin von der Quelle.
+    # Bei Verkettung lehnt Google ein gesetztes video_config.task ab — der
+    # Kontext der Vorgänger-Interaktion sagt schon, worum es geht.
+    chained = bool(interaction_id)
+    result = api.interact(
+        prompt,
+        task=None if chained else task,
+        aspect=None if (chained or task == "edit") else aspect,
+        video_uri=video_uri,
+        image_path=image_path,
+        previous_interaction_id=interaction_id,
+        on_progress=lambda m: print(f"  {label}{m}", flush=True),
+    )
+    return api.extract_video(result), result
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="omni.py",
-        description="Gemini Omni Flash über fal.ai — Video-Edit und Text-to-Video",
+        description="Gemini Omni Flash, direkt bei Google — Video-Edit, Text-to-Video, Bild-to-Video",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
     def common(sp, needs_input=True):
         if needs_input:
-            sp.add_argument("--input", required=True, help="Lokale Videodatei oder öffentliche URL")
+            sp.add_argument("--input", required=True,
+                            help="Clip aus einem früheren Lauf (wird verkettet) oder eigene Datei")
         sp.add_argument("--out", default="./out", help="Zielordner (Default ./out)")
         sp.add_argument("--name", help="Basisname der Ausgabedateien")
         sp.add_argument("--runs", type=int, default=1, help="Generierungen pro Variante (Default 1)")
@@ -573,7 +470,7 @@ def build_parser():
 
     sp = common(sub.add_parser("animate", help="Aus einem Produktfoto einen Clip machen"),
                 needs_input=False)
-    sp.add_argument("--image", required=True, help="Packshot: lokale Datei oder öffentliche URL")
+    sp.add_argument("--image", required=True, help="Packshot als lokale Bilddatei")
     sp.add_argument("--prompt", required=True, help="Wie sich das Bild bewegen soll")
     sp.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"])
     sp.add_argument("--duration", type=int, default=8, help="3 bis 10 Sekunden (Default 8)")
@@ -588,10 +485,10 @@ def main():
         sys.exit("change-angle braucht mindestens ein --angle oder --to")
     if args.command in ("create", "animate") and not 3 <= args.duration <= 10:
         sys.exit("--duration muss zwischen 3 und 10 Sekunden liegen")
-    if args.command == "animate" and not args.image.startswith(("http://", "https://", "data:")):
-        if not pathlib.Path(args.image).expanduser().exists():
-            sys.exit(f"Bild nicht gefunden: {args.image}")
+    if args.command == "animate" and not pathlib.Path(args.image).expanduser().exists():
+        sys.exit(f"Bild nicht gefunden: {args.image}")
 
+    generating = args.command in ("create", "animate")
     jobs = plan(args)
     total = len(jobs) * args.runs
 
@@ -600,100 +497,79 @@ def main():
     for slug, prompt in jobs:
         print(f"\n  [{slug}]\n  {prompt}")
 
-    if args.command in ("create", "animate"):
-        seconds, rate = args.duration, USD_PER_SECOND_CREATE
-        basis = "Text-to-Video" if args.command == "create" else "Bild-to-Video"
-    else:
-        seconds, rate, basis = source_seconds(args.input) or 8, USD_PER_SECOND_EDIT, "Video-Edit"
-    print(f"\n  {total} Modellaufruf(e) × {seconds:.0f} s ({basis}) "
-          f"≈ {rate * seconds * total:.2f} USD")
-    if args.command not in ("create", "animate"):
-        print(f"  Grundlage: gemessene {rate:.3f} USD/s. Kürzere oder kleinere "
-              f"Quellclips kosten weniger.")
+    seconds = args.duration if generating else (source_seconds(args.input) or 8)
+    basis = {"create": "Text-to-Video", "animate": "Bild-to-Video"}.get(args.command, "Video-Edit")
+    print(f"\n  {total} Aufruf(e) × {seconds:.0f} s ({basis}) "
+          f"≈ {estimate(seconds, not generating) * total:.2f} USD geschätzt")
+    print("  Der tatsächliche Preis steht nach jedem Lauf — Google liefert die "
+          "Tokenzahlen mit.")
 
     if args.dry_run:
         print("  Dry run, es wurde nichts ausgegeben.")
         return
     if not _has_ffmpeg():
         print("  Hinweis: ffmpeg fehlt, es werden keine Kontaktblätter geschrieben.")
-
-    if not load_key():
-        sys.exit("FAL_KEY fehlt. In .env eintragen: FAL_KEY=…  (https://fal.ai/dashboard/keys)")
-
-    try:
-        import fal_client
-    except ImportError:
-        # Der häufigste Einrichtungsfehler überhaupt: pip und python3 zeigen auf
-        # verschiedene Interpreter. Deshalb hier ansagen, WELCHER Python gemeint
-        # ist, und den Befehl nennen, der garantiert denselben trifft.
-        sys.exit(
-            f"fal-client fehlt in diesem Python:\n  {sys.executable}\n\n"
-            f"Installier es genau dort:\n  {sys.executable} -m pip install fal-client\n\n"
-            "Ein blankes 'pip install fal-client' kann in einen anderen Python "
-            "installieren — dann bleibt diese Meldung stehen, obwohl pip Erfolg meldet."
-        )
+    if not api.load_key():
+        sys.exit("GEMINI_API_KEY fehlt. In .env eintragen:\n"
+                 "  GEMINI_API_KEY=…    (https://aistudio.google.com/apikey)")
 
     out_dir = pathlib.Path(args.out).expanduser()
     work_dir = out_dir / ".work"
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.command == "create":
-        endpoint, source_url, source_local = ENDPOINT_CREATE, None, None
-    elif args.command == "animate":
-        # Standbild statt Video: hochladen, aber kein Kontaktblatt-Vergleich,
-        # weil die Quelle ein Bild ist und kein Clip.
-        endpoint, source_local = ENDPOINT_ANIMATE, None
-        source_url = resolve_image(fal_client, args.image)
-    else:
-        endpoint = ENDPOINT_EDIT
-        source_url, source_local = resolve_source(fal_client, args.input, work_dir)
+    interaction_id = video_uri = source_local = None
+    if not generating:
+        interaction_id, source_local = resolve_source(args.input)
+        if interaction_id:
+            print(f"\n  Quelle stammt aus einem früheren Lauf — wird verkettet "
+                  f"(erlaubt im EWR).")
+        else:
+            print(f"\n  Kein Manifest neben {pathlib.Path(args.input).name}: "
+                  f"Clip wird hochgeladen.")
+            try:
+                video_uri = api.upload_file(args.input, on_progress=lambda m: print("  " + m))
+            except api.OmniError as exc:
+                sys.exit(f"  {exc}")
 
     base = args.name or args.command
-    written, manifest = [], []
+    written, manifest, spent = [], [], 0.0
     step = 0
     aborted = None
 
     for slug, prompt in jobs:
         if aborted:
             break
-        for run in range(1, args.runs + 1):
+        for _ in range(args.runs):
             if aborted:
                 break
             step += 1
             label = f"[{step}/{total}] " if total > 1 else ""
             stem = args.name if (args.name and len(jobs) == 1) else f"{base}-{slug}"
 
-            if args.command == "create":
-                arguments = {"prompt": prompt, "aspect_ratio": args.aspect,
-                             "duration": args.duration}
-            elif args.command == "animate":
-                arguments = {"prompt": prompt, "image_url": source_url,
-                             "aspect_ratio": args.aspect, "duration": args.duration}
-            else:
-                arguments = {"prompt": prompt, "video_url": source_url}
-
             try:
-                video, took, request_id = run_once(fal_client, endpoint, arguments, label)
-            except Exception as exc:  # noqa: BLE001 — Meldung für den Nutzer, nicht fürs Log
-                message = str(exc)
-                print(f"  {label}Fehlgeschlagen ({slug}): {type(exc).__name__}: {message}")
-                if "not available" in message.lower() or "region" in message.lower():
-                    print("  Hinweis: Google sperrt den Video-Edit hochgeladener Clips in "
-                          "EWR/UK/CH. Siehe README, Abschnitt Grenzen.")
-                if is_fatal(message):
-                    aborted = message
-                    remaining = total - step
-                    print(f"  Abbruch: Das betrifft den Zugang selbst, nicht diese Variante. "
-                          f"{remaining} weitere Aufruf(e) übersprungen.\n"
-                          f"  Guthaben und Key prüfen: https://fal.ai/dashboard/billing")
-                    break
+                blob, result = run_once(
+                    args.command, prompt, label,
+                    aspect=getattr(args, "aspect", None),
+                    duration=getattr(args, "duration", None),
+                    video_uri=video_uri,
+                    image_path=args.image if args.command == "animate" else None,
+                    interaction_id=interaction_id,
+                )
+            except api.RegionBlocked as exc:
+                print(f"\n  {exc}")
+                aborted = "region"
+                break
+            except api.OmniError as exc:
+                print(f"  {label}Fehlgeschlagen ({slug}): {exc}")
                 continue
 
-            # Nie überschreiben: jeder Lauf beansprucht die nächste freie Version.
             target = claim_version(out_dir, stem)
-            download(video["url"], target)
+            target.write_bytes(blob)
             written.append(target)
-            print(f"  {label}→ {target}  ({video.get('file_size', 0) / 1_048_576:.1f} MB, {took:.0f}s)")
+            price = api.cost(result)
+            spent += price
+            print(f"  {label}→ {target}  ({len(blob) / 1_048_576:.1f} MB, "
+                  f"{result.get('_seconds', 0):.0f}s, {price:.3f} USD)")
 
             sheet = contact_sheet(source_local, target,
                                   out_dir / f"{target.stem}-compare.jpg",
@@ -701,12 +577,19 @@ def main():
             if sheet:
                 print(f"  {label}→ {sheet}  (oben Quelle, unten Ergebnis)")
 
+            usage = result.get("usage") or {}
             entry = {
                 "command": args.command, "variant": slug, "prompt": prompt,
-                "endpoint": endpoint, "request_id": request_id,
-                "source": str(source_local) if source_local else source_url,
-                "source_url": source_url, "output": str(target),
-                "compare": str(sheet) if sheet else None, "seconds": round(took, 1),
+                "model": api.MODEL,
+                "interaction_id": result.get("id"),
+                "chained_from": interaction_id,
+                "source": str(source_local) if source_local else None,
+                "output": str(target),
+                "compare": str(sheet) if sheet else None,
+                "seconds": result.get("_seconds"),
+                "usd": round(price, 4),
+                "tokens_in": usage.get("total_input_tokens"),
+                "tokens_out": usage.get("total_output_tokens"),
             }
             manifest.append(entry)
             (out_dir / f"{target.stem}.json").write_text(
@@ -722,11 +605,14 @@ def main():
         (out_dir / f"{base}-batch.json").write_text(
             json.dumps(manifest, indent=2, ensure_ascii=False))
 
-    print(f"\n  {len(written)} von {total} Aufruf(en) erfolgreich.")
+    print(f"\n  {len(written)} von {total} Aufruf(en) erfolgreich, "
+          f"{spent:.2f} USD tatsächlich abgerechnet.")
+    if written:
+        print(f"  Weiterbearbeiten: --input {written[0]}")
 
     if args.json:
-        print(json.dumps({"outputs": [str(p) for p in written], "runs": manifest},
-                         ensure_ascii=False))
+        print(json.dumps({"outputs": [str(x) for x in written], "usd": round(spent, 4),
+                          "runs": manifest}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

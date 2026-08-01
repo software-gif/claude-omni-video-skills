@@ -14,13 +14,12 @@ IDE-Erweiterung.
 ```bash
 git clone https://github.com/software-gif/claude-omni-video-skills.git
 cd claude-omni-video-skills
-python3 -m pip install fal-client
 ```
 
-**`python3 -m pip` statt nur `pip`** — das ist nicht Pedanterie. Auf vielen Macs
-liegen zwei Pythons (System und Homebrew). Ein blankes `pip install` landet
-womöglich im einen, während `python3` den anderen startet. Dann meldet pip
-Erfolg und das Skript trotzdem „fal-client fehlt".
+**Keine Pakete zu installieren.** Die Skripte laufen mit der
+Python-Standardbibliothek. Damit entfällt auch die häufigste Stolperfalle
+überhaupt: dass `pip` und `python3` auf verschiedene Interpreter zeigen und
+Installationen ins Leere laufen.
 
 Optional, aber sehr empfohlen:
 
@@ -32,13 +31,11 @@ Ohne ffmpeg läuft alles, aber es entstehen keine Kontaktblätter — und dann k
 Claude das Ergebnis nicht ansehen, sondern nur melden, dass eine Datei da ist.
 Das ist der halbe Nutzen.
 
-## 3 · fal-Key eintragen
+## 3 · Google-Key eintragen
 
-Der Key kommt von [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys).
-fal ist der Anbieter, über den Gemini Omni läuft; hier entstehen auch die
-Kosten. Lade dort Guthaben auf: gemessen kostet ein Edit rund **0,25 $ pro
-Sekunde** Cliplänge — also ~1,25 $ bei 5 Sekunden, ~2,00 $ bei 8. Für einen
-ersten Durchgang durch alle vier Skills solltest du **10 $** einplanen.
+Der Key kommt von [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+Dort entstehen auch die Kosten: rund **0,13 $ pro Sekunde** erzeugtem Video, ein
+3-Sekunden-Clip also etwa 0,40 $.
 
 ```bash
 cp .env.example .env
@@ -47,11 +44,11 @@ cp .env.example .env
 Dann `.env` öffnen und eintragen:
 
 ```
-FAL_KEY=dein-key-hier
+GEMINI_API_KEY=dein-key-hier
 ```
 
 Die `.env` ist über `.gitignore` ausgeschlossen und landet nicht im Repo.
-Alternativ geht auch `export FAL_KEY=…` in der Shell.
+Alternativ geht auch `export GEMINI_API_KEY=…` in der Shell.
 
 ## 4 · Markenkontext ausfüllen
 
@@ -73,101 +70,77 @@ Bevor du zum ersten Mal Geld ausgibst:
 python3 scripts/selftest.py
 ```
 
-Das kostet nichts — kein einziger Modellaufruf. Geprüft werden Python und
-fal-client, ffmpeg, ob der Key gefunden wird, dein Guthaben samt der Anzahl
-Läufe, die es reicht, sowie alle sieben Kommandos im Trockenlauf. Jede
-Fehlermeldung sagt dazu, was zu tun ist.
+Das kostet nichts — kein einziger Modellaufruf. Geprüft werden Python, ffmpeg,
+ob der Key gefunden wird und trägt, ob Omni für dein Projekt freigeschaltet ist,
+sowie alle sieben Kommandos im Trockenlauf. Jede Fehlermeldung sagt dazu, was zu
+tun ist.
 
 ## 6 · Erster Lauf
 
-Claude Code im Repo-Ordner starten und einen der Befehle aufrufen:
+**Zuerst brauchst du einen Ausgangsclip vom Modell selbst.** Warum, steht im
+README: Google lässt aus EWR, Schweiz und UK keine hochgeladenen Videos
+bearbeiten, wohl aber solche, die das Modell erzeugt hat.
+
+Aus einem Produktfoto:
+
+```bash
+python3 scripts/omni.py animate \
+  --image produkte/tiegel.jpg \
+  --prompt "slow push-in on the jar, soft studio light, the product stays still" \
+  --aspect 9:16 --duration 5 --out ./out
+```
+
+Oder ganz ohne Material:
+
+```bash
+python3 scripts/omni.py create \
+  --prompt "A matte black insulated bottle on a pale wooden table, soft studio light." \
+  --duration 5 --out ./out
+```
+
+Danach Claude Code im Ordner starten und eine der vier Skills auf das Ergebnis
+loslassen:
 
 ```
 /swap-background
 ```
 
-Kein eigenes Material zur Hand? Dann erzeug dir eins — das kostet einen Lauf
-und dauert rund 40 Sekunden:
+Die Verkettung passiert von selbst — `--input` findet die Interaktions-ID im
+Manifest neben dem Video.
 
-```bash
-python3 scripts/omni.py create \
-  --prompt "A young woman in a grey hoodie holds a matte black water bottle on a sunlit city sidewalk, slow push-in, the words STAY SHARP burned into the lower third." \
-  --aspect 16:9 --duration 8 --out ./out --name testclip
-```
-
-Vorher prüfen, ohne etwas auszugeben, geht immer mit `--dry-run`:
-
-```bash
-python3 scripts/omni.py swap-background --input ./out/testclip.mp4 \
-  --to "a snowy alpine village at dusk" --dry-run
-```
+Vorher prüfen, ohne etwas auszugeben, geht immer mit `--dry-run`.
 
 ---
 
 ## Wenn etwas klemmt
 
-Die vier Fehler, die in der Praxis auftreten, und was sie bedeuten.
-
-### `fal-client fehlt in diesem Python`
-
-Zwei Pythons auf dem Rechner, und pip hat in den falschen installiert. Die
-Meldung nennt den Pfad des Interpreters, der gerade läuft, samt passendem
-Befehl — den einfach kopieren. Vorbeugen lässt sich das mit
-`python3 -m pip install fal-client` statt `pip install fal-client`.
-
-### `FAL_KEY fehlt`
+### `GEMINI_API_KEY fehlt`
 
 Die `.env` liegt nicht neben dem Repo, oder die Zeile heißt anders. Das Skript
-sucht `FAL_KEY=` in `.env` im Repo-Wurzelverzeichnis und im aktuellen Ordner,
-und danach in den Umgebungsvariablen.
+sucht `GEMINI_API_KEY=` in `.env` im Repo-Wurzelverzeichnis und im aktuellen
+Ordner, danach in den Umgebungsvariablen.
 
-### `invalid key credentials` (401)
+### `Key wird abgelehnt (403)`
 
-Der Key ist falsch, abgelaufen oder gelöscht. Neu erzeugen auf
-[fal.ai/dashboard/keys](https://fal.ai/dashboard/keys). Achte darauf, den
-kompletten Key zu kopieren — er enthält einen Doppelpunkt und besteht aus zwei
-Teilen.
+Das Google-Projekt hinter dem Key hat keinen Zugriff. Neuen Key in AI Studio
+erzeugen. `python3 scripts/selftest.py` sagt dir sofort, ob der Key trägt und ob
+Omni für dich freigeschaltet ist.
 
-### `403 Forbidden` beim Upload
+### Etwas mit *sensitive words*
 
-Fast immer aufgebrauchtes Guthaben. Das Skript zeigt dir seit Kurzem den
-Klartext von fal mit an, meist:
+Das ist **nicht** dein Prompt, auch wenn die Meldung das behauptet. Es ist die
+Regionssperre: Aus EWR, Schweiz und UK lässt Google keine **hochgeladenen**
+Videos bearbeiten. Gegengetestet mit dem harmlosesten denkbaren Satz — ebenfalls
+blockiert, während derselbe Prompt ohne hochgeladenes Video durchläuft.
 
-```
-User is locked. Reason: Exhausted balance.
-```
+Lösung: Ausgangsclip mit `create` oder `animate` erzeugen, die vier Skills
+darauf verketten. Das Skript sagt dir beim Start, welcher der beiden Wege
+gerade greift.
 
-Aufladen unter [fal.ai/dashboard/billing](https://fal.ai/dashboard/billing).
-Seltener: zu viele parallele Läufe. Umgehen lässt sich der Upload komplett,
-indem du `--input` mit einer öffentlichen URL statt einer lokalen Datei
-aufrufst.
+### `previous_interaction_id is not allowed when video task is set`
 
-### „The prompt contains sensitive words" (nur beim Google-Direktweg)
-
-Diese Meldung kommt, wenn du Omni **direkt über die Google-Gemini-API**
-ansprichst statt über fal, und einen eigenen Clip zum Bearbeiten hochlädst.
-Sie ist irreführend: Es liegt nicht am Prompt. Wir haben es mit „Make this
-video look like winter." gegengetestet — auch blockiert. Derselbe Prompt ohne
-hochgeladenes Video läuft dagegen durch.
-
-Dahinter steckt die EWR/Schweiz/UK-Sperre für das Bearbeiten hochgeladener
-Videos. Was dort erlaubt bleibt: Videos zu bearbeiten, die das Modell selbst
-erzeugt hat (per `previous_interaction_id` verkettet) — nachgetestet, läuft.
-Für eigenes Drehmaterial hilft das aber nicht, und genau darum geht es hier.
-
-Lösung: über fal gehen, so wie dieses Repo es tut. Kostenvorteil hätte der
-Direktweg ohnehin keinen: 0,142 USD/s laut Googles eigener Token-Abrechnung
-gegenüber gemessenen 0,150 über fal.
-
-### Etwas mit „not available in your region"
-
-Google sperrt das Bearbeiten **hochgeladener** Videos für Nutzer in EWR,
-Schweiz und UK; **modell-generierte** Videos zu bearbeiten ist dort erlaubt.
-Über fal läuft die Anfrage gar nicht erst aus dem EWR heraus, deshalb liefen
-unsere Tests aus Deutschland durch — mit hochgeladener Datei genauso wie mit
-öffentlicher URL. Solltest du die Sperre trotzdem sehen, ist das kein Fehler im
-Skript. Rufst du Omni direkt über die Google-Gemini-API auf statt über fal,
-kann sie dagegen greifen.
+Sollte nicht mehr auftreten — falls doch, ist das Skript älter als der Fix.
+Google verträgt Verkettung und explizite Aufgabenangabe nicht gleichzeitig.
 
 ### Es entstehen keine `-compare.jpg`
 

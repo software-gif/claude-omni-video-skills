@@ -1,1 +1,5 @@
-fal-client>=0.5
+# Keine. Die Skripte laufen mit der Python-Standardbibliothek.
+#
+# Empfohlen, aber optional: ffmpeg für die Vorher-Nachher-Kontaktblätter.
+#   macOS:  brew install ffmpeg
+#   Linux:  apt install ffmpeg

@@ -5,11 +5,11 @@ selftest.py — prüft die Einrichtung, ohne einen Cent auszugeben.
     python3 scripts/selftest.py
 
 Kein einziger Modellaufruf. Geprüft wird, was erfahrungsgemäß schiefgeht,
-bevor jemand zum ersten Mal Geld ausgibt: falscher Python, fehlendes ffmpeg,
-Key nicht gefunden, leeres Guthaben, und ob die Prompt-Rezepte im Code noch mit
-dem übereinstimmen, was die SKILL.md-Dateien behaupten.
+bevor jemand zum ersten Mal Geld ausgibt: fehlendes ffmpeg, Key nicht gefunden
+oder ungültig, Modell nicht freigeschaltet, und ob die Prompt-Rezepte im Code
+noch mit dem übereinstimmen, was die SKILL.md-Dateien behaupten.
 
-Der Kontostand wird per GET abgefragt — das kostet nichts.
+Der Key wird gegen die Modell-Liste geprüft — ein GET, der nichts kostet.
 """
 
 import importlib.util
@@ -35,20 +35,19 @@ def report(status, label, detail=""):
         problems.append(label)
 
 
-def load_omni():
-    spec = importlib.util.spec_from_file_location("omni", OMNI)
+def load_module(name):
+    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def check_python(omni):
+def check_python():
     version = ".".join(str(n) for n in sys.version_info[:3])
-    if importlib.util.find_spec("fal_client"):
-        report(OK, f"Python {version} mit fal-client")
+    if sys.version_info < (3, 8):
+        report(FAIL, f"Python {version} ist zu alt", "Mindestens 3.8 nötig.")
     else:
-        report(FAIL, f"Python {version} ohne fal-client",
-               f"{sys.executable} -m pip install fal-client")
+        report(OK, f"Python {version} — keine Zusatzpakete nötig")
 
 
 def check_ffmpeg():
@@ -59,29 +58,31 @@ def check_ffmpeg():
                "brew install ffmpeg   (ohne sie kann Claude die Ergebnisse nicht ansehen)")
 
 
-def check_key_and_balance(omni):
-    key = omni.load_key()
-    if not key:
-        report(FAIL, "FAL_KEY nicht gefunden", "In .env eintragen: FAL_KEY=…")
+def check_key(api):
+    """Key vorhanden, gültig, und ist Omni für dieses Projekt freigeschaltet?"""
+    if not api.load_key():
+        report(FAIL, "GEMINI_API_KEY nicht gefunden",
+               "In .env eintragen — Key von https://aistudio.google.com/apikey")
         return
-    report(OK, "FAL_KEY gefunden")
-    request = urllib.request.Request(
-        "https://rest.fal.ai/billing/user_balance",
-        headers={"Authorization": f"Key {key}"},
-    )
+    report(OK, "GEMINI_API_KEY gefunden")
     try:
-        balance = float(urllib.request.urlopen(request, timeout=30).read().decode().strip())
+        status, body, _ = api._request("/v1beta/models?pageSize=300", timeout=45)
     except Exception as exc:  # noqa: BLE001
-        report(WARN, "Guthaben nicht abrufbar", str(exc)[:120])
+        report(WARN, "Modell-Liste nicht abrufbar", str(exc)[:120])
         return
-    runs = int(balance / (omni.USD_PER_SECOND_EDIT * 5))
-    if balance <= 0:
-        report(FAIL, f"Guthaben {balance:.2f} USD — aufgebraucht",
-               "Aufladen: https://fal.ai/dashboard/billing")
-    elif runs < 4:
-        report(WARN, f"Guthaben {balance:.2f} USD — reicht für ~{runs} Läufe à 5 s")
+    if status == 403:
+        report(FAIL, "Key wird abgelehnt (403)",
+               "Projekt ohne Zugriff. Neuen Key erzeugen oder Projekt freischalten.")
+        return
+    if status != 200:
+        report(FAIL, f"Google antwortet mit {status}", body[:150].decode(errors="replace"))
+        return
+    names = [m.get("name", "") for m in json.loads(body).get("models", [])]
+    if any("omni" in n for n in names):
+        report(OK, f"Omni freigeschaltet ({api.MODEL})")
     else:
-        report(OK, f"Guthaben {balance:.2f} USD — reicht für ~{runs} Läufe à 5 s")
+        report(FAIL, "Omni ist für diesen Key nicht sichtbar",
+               f"{len(names)} Modelle sichtbar, keines davon Omni.")
 
 
 def check_skills(omni):
@@ -158,12 +159,14 @@ def check_commands():
 
 def main():
     print("\nEinrichtung prüfen — es wird nichts generiert und nichts abgerechnet.\n")
-    omni = load_omni()
+    omni = load_module("omni")
+
+    api = load_module("google_omni")
 
     print("Umgebung")
-    check_python(omni)
+    check_python()
     check_ffmpeg()
-    check_key_and_balance(omni)
+    check_key(api)
 
     print("\nSkills")
     check_skills(omni)
@@ -177,7 +180,7 @@ def main():
         print("Oben steht bei jedem, was zu tun ist.")
         sys.exit(1)
     print("Alles in Ordnung. Ein Lauf auf einem 5-Sekunden-Clip kostet rund "
-          f"{omni.USD_PER_SECOND_EDIT * 5:.2f} USD.")
+          f"{omni.estimate(5, True):.2f} USD; der exakte Preis steht nach jedem Lauf.")
 
 
 if __name__ == "__main__":

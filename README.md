@@ -21,15 +21,16 @@ On-Screen-Text übersetzen.
 
 ## Kurz gefasst
 
-Google hat Gemini Omni über API veröffentlicht, aufgeteilt in vier Endpoints
-mit je einem Zweck:
+Gemini Omni läuft hier **direkt über die Google-Gemini-API** — kein
+Zwischenanbieter, kein SDK, keine Zusatzpakete. Ein Endpoint,
+`v1beta/interactions`, mit vier Aufgaben:
 
-| Endpoint | Nimmt | Kann nicht |
+| `video_config.task` | Nimmt | Ergibt |
 |---|---|---|
-| `gemini-omni-flash` | nur Text | keine Bilder, kein Video rein |
-| `gemini-omni-flash/edit` | Clip + eine Anweisung | keine Referenzbilder |
-| `gemini-omni-flash/image-to-video` | ein Standbild | kein Video rein |
-| `gemini-omni-flash/reference-to-video` | Prompt + Referenzbilder | kein Video rein |
+| `text_to_video` | nur Text | ein neuer Clip |
+| `image_to_video` | ein Standbild + Text | Clip aus einem Packshot |
+| `edit` | ein Video + eine Anweisung | derselbe Clip, eine Sache geändert |
+| *(Verkettung)* | eine frühere Interaktion + Anweisung | Weiterbearbeitung ohne Upload |
 
 **Stark ist Omni bei genau einer Sache: einfache Video-zu-Video-Edits.** Du
 gibst ihm einen Clip, den du schon hast, plus eine Anweisung in Alltagssprache,
@@ -40,6 +41,28 @@ Für frei generierte Clips in Top-Qualität sind Kling 3.0 oder Seedance die
 stärkeren Modelle. Darum geht es hier nicht. Es geht um die schmale Handvoll
 Fälle, in denen der In-Place-Edit genau das richtige Werkzeug ist — und dieses
 Repo deckt sie ab.
+
+## Eine Einschränkung, die du vorher kennen musst
+
+**Google erlaubt aus EWR, Schweiz und UK das Bearbeiten hochgeladener Videos
+nicht.** Nachgemessen mit gültigem Key, korrekter Payload und dem harmlosesten
+denkbaren Prompt — der Aufruf besteht die Strukturprüfung und scheitert erst an
+der Richtlinie. Gemeldet wird das irreführend als *„The prompt contains
+sensitive words"*; am Prompt liegt es nie.
+
+Erlaubt ist das Bearbeiten von Clips, **die das Modell selbst erzeugt hat**.
+Daraus ergibt sich der Ablauf:
+
+```
+create  oder  animate   →   swap-background / change-angle /
+(Clip entsteht)             transform-object / localize
+                            (beliebig oft verkettet)
+```
+
+Jeder Lauf schreibt seine Interaktions-ID in die Manifest-Datei neben dem Video.
+`--input` findet sie dort von selbst und verkettet — **du hantierst nie mit
+IDs**. Was nicht geht: eigenes Drehmaterial hochladen und bearbeiten. Wer das
+aus Europa braucht, kommt um einen Anbieter außerhalb des EWR nicht herum.
 
 ## Warum das an Claude hängen?
 
@@ -85,15 +108,24 @@ Du fasst das nie an, `scripts/omni.py` erledigt Upload, Warteschlange,
 Download und Kontaktblatt drumherum:
 
 ```python
-import fal_client
+import json, urllib.request
 
-result = fal_client.subscribe("google/gemini-omni-flash/edit", arguments={
-    "video_url": "https://.../clip.mp4",
-    "prompt": "Change only the background to a snowy alpine village at dusk. "
-              "Keep everything else the same.",
-})
-print(result["video"]["url"])
+req = urllib.request.Request(
+    "https://generativelanguage.googleapis.com/v1beta/interactions",
+    headers={"x-goog-api-key": KEY, "Content-Type": "application/json"},
+    data=json.dumps({
+        "model": "gemini-omni-flash-preview",
+        "previous_interaction_id": vorheriger_lauf,
+        "input": [{"type": "text", "text":
+                   "Change only the background to a snowy alpine village at dusk. "
+                   "Keep everything else the same."}],
+    }).encode())
+
+antwort = json.loads(urllib.request.urlopen(req).read())
 ```
+
+Das Video steckt base64-kodiert in `antwort["steps"][…]["content"][…]["data"]`,
+die abgerechneten Tokens in `antwort["usage"]`. Kein SDK, keine Abhängigkeit.
 
 Der ganze Rest dieses Repos ist die Frage, **was** in diesem Prompt steht und
 **wie** du prüfst, was zurückkommt.
@@ -215,39 +247,26 @@ zitiert als der Code ausführt, ist schlimmer als keine.
 
 ## Kosten
 
-**Die 0,13 $ pro Sekunde auf der fal-Modellseite sind nur der Ausgabe-Anteil.**
-Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den Clip, der
-hineingeht — in der Summe rund das Doppelte.
+Google rechnet nach Tokens ab, und **jede Antwort liefert die tatsächlich
+verbrauchten Tokenzahlen mit**. Deshalb weist jeder Lauf seinen echten Preis
+aus, statt zu schätzen:
 
-Gemessen über eine ganze Session mit 29 Läufen: **51,45 $ verbraucht**, also
-**~1,80 $ pro Lauf** auf 5- bis 8-Sekunden-Clips, gut **0,25 $ pro Sekunde**.
+```
+→ gtest/swap_v1.mp4  (0.6 MB, 32s, 0.425 USD)
+```
 
-> **Miss das nicht kurz nach einem Lauf nach.** fals Kontostand-Endpoint hinkt
-> der Abrechnung hinterher. Zwei Schätzungen, die so entstanden sind (0,213 und
-> 0,146 $/s), lagen beide zu niedrig — die zweite um mehr als die Hälfte.
-> Verlässlich ist nur Gesamtverbrauch geteilt durch Gesamtlaufzeit.
-
-Das gilt pro Variante, nicht pro Befehl:
+Sätze der Modellseite: 1,875 $ je Million Eingabe-Tokens, 21,875 $ je Million
+Ausgabe-Tokens. In der Praxis gemessen:
 
 | | |
 |---|---|
-| Ein Clip, eine Variante, 5 s | ~1,25 $ |
-| Derselbe Clip in 8 s | ~2,00 $ |
-| Vier Märkte aus 5 s | ~5,00 $ |
-| Vier Märkte aus 8 s | ~8,00 $ |
+| Clip erzeugen, 3 s | 0,39 $ |
+| Verketteter Edit, 3 s | 0,43 $ |
+| Grob pro Sekunde | ~0,13 $ erzeugen, ~0,14 $ bearbeiten |
 
-**Der wirksamste Sparhebel ist die Schere, nicht das Modell.** Bezahlt wird
-Input *und* Ausgabe, beides skaliert mit der Länge — und der Input zusätzlich
-mit der Auflösung der Quelle. Wer vorher auf die Sekunden kürzt, die er
-wirklich braucht, zahlt bei jedem Lauf und jeder Variante entsprechend weniger:
-
-```bash
-ffmpeg -i clip.mp4 -t 5 -c:v libx264 -crf 20 clip-5s.mp4
-```
-
-`--dry-run` zeigt den kompletten Plan mit Prompt und Kostenschätzung, ohne etwas
-auszugeben — und liest dafür die echte Länge deines Clips aus, statt pauschal zu
-rechnen. Bei Batches über etwa drei Varianten lohnt sich das immer.
+`--dry-run` zeigt vorher den kompletten Plan mit Schätzung, ohne etwas
+auszugeben. Bezahlt wird pro Variante, nicht pro Befehl — und die Länge ist der
+Hebel: Ein 5-Sekunden-Clip kostet knapp die Hälfte eines 10-Sekünders.
 
 ## Grenzen — ehrlich
 
@@ -309,26 +328,9 @@ direkten A/B-Vergleichen zwischen Prompt-Varianten.
 - **Ein Lauf dauert 40 bis 90 Sekunden.** Das Skript zeigt alle 30 Sekunden ein
   Lebenszeichen und bricht nach 10 Minuten mit der Request-ID ab, damit ein
   hängender Lauf nicht stillschweigend ewig steht.
-- **Warum fal und nicht direkt Google — durchgetestet.** Naheliegende Idee: den
-  Umweg sparen und Omni direkt über die Google-Gemini-API ansprechen. Mit
-  gültigem Google-Key aus Deutschland getestet, alle drei Wege:
+- **Kein fremdes Drehmaterial aus Europa.** Siehe oben — das ist die härteste
+  Grenze dieses Aufbaus, und sie kommt von Googles Richtlinie, nicht vom Code.
 
-  | Aufruf | Ergebnis |
-  |---|---|
-  | Text-to-Video, kein Video rein | HTTP 200, läuft |
-  | Edit eines **selbst generierten** Clips (`previous_interaction_id`) | HTTP 200, läuft |
-  | Edit eines **hochgeladenen** Clips | HTTP 400, abgelehnt |
-
-  Genau die dokumentierte EWR/Schweiz/UK-Sperre: eigene Videos hochladen und
-  bearbeiten geht nicht, modell-generierte bearbeiten schon. **Alle vier Skills
-  bearbeiten Material, das du schon hast** — also genau den gesperrten Fall.
-
-  Zwei Fallstricke dabei: Google meldet die Sperre als *„The prompt contains
-  sensitive words"*, auch bei „Make this video look like winter." Wer das sieht,
-  sucht den Fehler im Prompt und findet ihn nie. Und günstiger ist der Direktweg
-  nicht — Googles eigene Token-Abrechnung ergibt **0,142 USD/s** gegenüber
-  gemessenen 0,150 über fal. Rund 5 % Unterschied, für einen Weg, der die
-  eigentliche Aufgabe nicht kann.
 - **Kein Voiceover.** Der Endpoint bearbeitet keine Stimmen. `/localize` ändert
   ausschließlich Text im Bild.
 

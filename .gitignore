@@ -4,6 +4,7 @@
 .env
 .work/
 __pycache__/
+gtest/
 out/
 runs/
 test-sn/

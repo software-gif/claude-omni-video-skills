@@ -12,7 +12,8 @@ of the original.
 This only works because Omni keeps text inside the frame legible through an
 edit. It touches **on-screen text only** — the spoken voiceover stays as it is.
 
-Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
+Runs on `gemini-omni-flash-preview` through the Google Gemini API, via
+`scripts/omni.py`.
 
 ## Step 0 — Read the brand file
 
@@ -22,7 +23,8 @@ nobody has to remember that the wordmark must not be translated.
 
 ## Step 1 — Get the clip and the target language
 
-**The source must be a file path on disk or a public URL.**
+**The source must be a clip from a previous `create` or `animate` run.** Pass
+its path; the script chains automatically via the manifest beside it.
 
 **No video, only product photos?** That is the common case, not an edge case.
 Point them at `animate`: a packshot plus a motion description becomes the source
@@ -126,11 +128,9 @@ clean. See `examples/failure-invented-branding.jpg`.
 
 ## Notes
 
-- Cost, measured rather than quoted: about **0.25 USD per second** of clip
-  length — 51.45 USD across 29 runs. The 0.13 USD/s on fal's model page is the
-  output share only; an edit also pays input tokens for the clip going in.
-  Do not verify this by reading the balance right after a run: fal's balance
-  endpoint lags and will understate it. A shorter source is cheaper.
+- Cost: roughly **0.13 USD per second** generated, **0.14 USD per second** for
+  an edit. Every response carries its real token usage, so each run prints what
+  it actually cost — no estimating. A shorter clip is proportionally cheaper.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one. 720p is the ceiling, so
   small print is out of reach; headlines, captions and signage are the
@@ -141,6 +141,8 @@ clean. See `examples/failure-invented-branding.jpg`.
   "BLEIB SMART" on the first attempt, in the same font, weight, colour and
   position, with nothing else in the frame touched. Treat that as the good
   case, not the guaranteed one.
-- Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
-  allows editing model-generated ones. Calls routed through fal do not originate
-  in the EEA at all, which is why runs from Germany went through. See the README.
+- **The source clip must come from `create` or `animate`.** Google does not
+  allow editing *uploaded* videos from the EEA, Switzerland or the UK, only
+  model-generated ones. `--input` chains automatically via the manifest next to
+  the video, so this is invisible in normal use — but if someone brings their own
+  footage, say plainly that this route cannot edit it.

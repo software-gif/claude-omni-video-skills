@@ -9,7 +9,8 @@ One shoot becomes a set of locations. Feed in a clip you already have, describe
 the new setting, and Gemini Omni repaints the background in place — subject,
 motion and framing stay where they were.
 
-Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
+Runs on `gemini-omni-flash-preview` through the Google Gemini API, via
+`scripts/omni.py`.
 
 ## Step 0 — Read the brand file
 
@@ -23,8 +24,9 @@ filling in `brand/brand.md` means not having to answer this every time.
 
 ## Step 1 — Get the clip and the new scene
 
-**The source must be a file path on disk or a public URL.** The script cannot
-read a clip that was pasted into the chat; ask for the path.
+**The source must be a clip from a previous `create` or `animate` run.** Pass
+its path; the script finds the interaction id in the manifest beside it and
+chains. A clip pasted into the chat cannot be read — ask for the path.
 
 **No video, only product photos?** That is the common case, not an edge case.
 Point them at `animate`: a packshot plus a motion description becomes the source
@@ -135,16 +137,15 @@ and keep it to one or two sentences.
 
 ## Notes
 
-- Cost, measured rather than quoted: about **0.25 USD per second** of clip
-  length — 51.45 USD across 29 runs. The 0.13 USD/s on fal's model page is the
-  output share only; an edit also pays input tokens for the clip going in.
-  Do not verify this by reading the balance right after a run: fal's balance
-  endpoint lags and will understate it. A shorter source is cheaper.
+- Cost: roughly **0.13 USD per second** generated, **0.14 USD per second** for
+  an edit. Every response carries its real token usage, so each run prints what
+  it actually cost — no estimating. A shorter clip is proportionally cheaper.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one. Omni does not upscale.
 - The edit endpoint takes **text only** — you cannot hand it a reference photo
   of the exact location. For that you need a reference-based model.
-- Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
-  allows editing model-generated ones. Calls routed through fal do not originate
-  in the EEA at all, which is why runs from Germany went through. If you do hit
-  the block, it is not a bug in the script — see the README.
+- **The source clip must come from `create` or `animate`.** Google does not
+  allow editing *uploaded* videos from the EEA, Switzerland or the UK, only
+  model-generated ones. `--input` chains automatically via the manifest next to
+  the video, so this is invisible in normal use — but if someone brings their own
+  footage, say plainly that this route cannot edit it.

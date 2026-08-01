@@ -9,7 +9,8 @@ One take becomes coverage. Ask for a wide, a close-up or an over-the-shoulder
 and Omni re-frames the same moment, so a single setup turns into a small
 edit-ready sequence instead of one static angle.
 
-Runs on `google/gemini-omni-flash/edit` via `scripts/omni.py`.
+Runs on `gemini-omni-flash-preview` through the Google Gemini API, via
+`scripts/omni.py`.
 
 ## Step 0 — Read the brand file
 
@@ -19,7 +20,8 @@ never appear). A reframe is one of the two places identity drifts, so know what
 
 ## Step 1 — Get the clip and the angle
 
-**The source must be a file path on disk or a public URL.**
+**The source must be a clip from a previous `create` or `animate` run.** Pass
+its path; the script chains automatically via the manifest beside it.
 
 **No video, only product photos?** That is the common case, not an edge case.
 Point them at `animate`: a packshot plus a motion description becomes the source
@@ -126,15 +128,15 @@ Short on purpose otherwise. Two things to avoid:
 
 ## Notes
 
-- Cost, measured rather than quoted: about **0.25 USD per second** of clip
-  length — 51.45 USD across 29 runs. The 0.13 USD/s on fal's model page is the
-  output share only; an edit also pays input tokens for the clip going in.
-  Do not verify this by reading the balance right after a run: fal's balance
-  endpoint lags and will understate it. A shorter source is cheaper.
+- Cost: roughly **0.13 USD per second** generated, **0.14 USD per second** for
+  an edit. Every response carries its real token usage, so each run prints what
+  it actually cost — no estimating. A shorter clip is proportionally cheaper.
 - Output is 720p at 24 fps, with audio, in the length of the source — 1280×720
   for a landscape source, 720×1280 for a portrait one.
 - Angles that require inventing a lot of unseen geometry (a full 180° reverse)
   are the weakest case. Small to moderate reframes hold up best.
-- Google blocks editing *uploaded* videos in the EEA, UK and Switzerland, but
-  allows editing model-generated ones. Calls routed through fal do not originate
-  in the EEA at all, which is why runs from Germany went through. See the README.
+- **The source clip must come from `create` or `animate`.** Google does not
+  allow editing *uploaded* videos from the EEA, Switzerland or the UK, only
+  model-generated ones. `--input` chains automatically via the manifest next to
+  the video, so this is invisible in normal use — but if someone brings their own
+  footage, say plainly that this route cannot edit it.
