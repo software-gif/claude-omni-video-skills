@@ -1,9 +1,10 @@
-.env
-__pycache__/
 *.pyc
+.DS_Store
+.cache/
+.env
+.work/
+__pycache__/
 out/
 runs/
-.cache/
-.DS_Store
-test/
 test-sn/
+test/
