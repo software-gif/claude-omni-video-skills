@@ -14,8 +14,13 @@ IDE-Erweiterung.
 ```bash
 git clone https://github.com/software-gif/claude-omni-video-skills.git
 cd claude-omni-video-skills
-pip install fal-client
+python3 -m pip install fal-client
 ```
+
+**`python3 -m pip` statt nur `pip`** — das ist nicht Pedanterie. Auf vielen Macs
+liegen zwei Pythons (System und Homebrew). Ein blankes `pip install` landet
+womöglich im einen, während `python3` den anderen startet. Dann meldet pip
+Erfolg und das Skript trotzdem „fal-client fehlt".
 
 Optional, aber sehr empfohlen:
 
@@ -89,6 +94,13 @@ python3 scripts/omni.py swap-background --input ./out/testclip.mp4 \
 ## Wenn etwas klemmt
 
 Die vier Fehler, die in der Praxis auftreten, und was sie bedeuten.
+
+### `fal-client fehlt in diesem Python`
+
+Zwei Pythons auf dem Rechner, und pip hat in den falschen installiert. Die
+Meldung nennt den Pfad des Interpreters, der gerade läuft, samt passendem
+Befehl — den einfach kopieren. Vorbeugen lässt sich das mit
+`python3 -m pip install fal-client` statt `pip install fal-client`.
 
 ### `FAL_KEY fehlt`
 

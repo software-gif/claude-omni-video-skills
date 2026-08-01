@@ -19,6 +19,12 @@ ungefragt einen großen Batch starten.
 Wenn der Quellclip länger ist als nötig: vorher kürzen vorschlagen. Bezahlt
 werden Input und Ausgabe, beides skaliert mit der Länge.
 
+## Wenn der Nutzer kein Video hat
+
+Nur Produktfotos ist der Normalfall. Dann `animate` vorschlagen: aus einem
+Packshot wird ein Ausgangsclip, auf dem die vier Skills laufen können. Nicht
+abwinken, weil kein Video da ist.
+
 ## Nach jedem Lauf
 
 Melde niemals Erfolg, weil eine Datei existiert. Jeder Lauf schreibt ein

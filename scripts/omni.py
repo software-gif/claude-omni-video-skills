@@ -11,6 +11,7 @@ Wrapper um genau ein Unterkommando hier.
     python3 scripts/omni.py localize         --input clip.mp4 --lang German --lang French
     python3 scripts/omni.py raw              --input clip.mp4 --prompt "..."
     python3 scripts/omni.py create           --prompt "..." --aspect 9:16 --duration 8
+    python3 scripts/omni.py animate          --image packshot.jpg --prompt "slow orbit around the jar"
 
 --to, --angle und --lang sind wiederholbar. Jede Angabe ist ein eigener
 Modellaufruf; das Skript rendert sie nacheinander und legt am Ende einen
@@ -32,6 +33,7 @@ import urllib.request
 
 ENDPOINT_EDIT = "google/gemini-omni-flash/edit"
 ENDPOINT_CREATE = "google/gemini-omni-flash"
+ENDPOINT_ANIMATE = "google/gemini-omni-flash/image-to-video"
 
 # Die fal-Modellseite nennt ~0,13 $ pro Sekunde 720p-Video. Das ist der
 # AUSGABE-Anteil. Ein Video-zu-Video-Edit zahlt zusätzlich Input-Tokens für den
@@ -151,7 +153,7 @@ def plan(args):
         return [(lang_slug(lang), prompt_localize(lang, args.keep)) for lang in args.lang]
     if args.command == "raw":
         return [("raw", args.prompt)]
-    if args.command == "create":
+    if args.command in ("create", "animate"):
         return [(slugify(args.prompt, 32), args.prompt)]
     raise ValueError(args.command)
 
@@ -282,6 +284,29 @@ def resolve_source(fal_client, source, work_dir):
     cache[fingerprint] = url
     cache_file.write_text(json.dumps(cache, indent=2))
     return url, path
+
+
+def resolve_image(fal_client, source):
+    """Packshot hochladen oder URL durchreichen.
+
+    Eigener Weg statt resolve_source: Ein Standbild braucht kein Kontaktblatt
+    und keinen Download für den Vergleich.
+    """
+    if source.startswith(("http://", "https://", "data:")):
+        return source
+    path = pathlib.Path(source).expanduser()
+    if not path.exists():
+        sys.exit(f"Bild nicht gefunden: {path}")
+    print(f"  Upload {path.name} ({path.stat().st_size / 1024:.0f} KB) …", flush=True)
+    try:
+        return fal_client.upload_file(str(path))
+    except Exception as exc:  # noqa: BLE001
+        detail = getattr(getattr(exc, "response", None), "text", "") or ""
+        sys.exit(
+            f"Upload fehlgeschlagen: {type(exc).__name__}: {exc}"
+            + (f"\n  fal sagt: {detail.strip()[:300]}" if detail else "")
+            + "\n  Guthaben und Key prüfen: https://fal.ai/dashboard/billing"
+        )
 
 
 def download(url, target):
@@ -546,6 +571,13 @@ def build_parser():
     sp.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"])
     sp.add_argument("--duration", type=int, default=8, help="3 bis 10 Sekunden (Default 8)")
 
+    sp = common(sub.add_parser("animate", help="Aus einem Produktfoto einen Clip machen"),
+                needs_input=False)
+    sp.add_argument("--image", required=True, help="Packshot: lokale Datei oder öffentliche URL")
+    sp.add_argument("--prompt", required=True, help="Wie sich das Bild bewegen soll")
+    sp.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"])
+    sp.add_argument("--duration", type=int, default=8, help="3 bis 10 Sekunden (Default 8)")
+
     return parser
 
 
@@ -554,8 +586,11 @@ def main():
 
     if args.command == "change-angle" and not (args.angle or args.to):
         sys.exit("change-angle braucht mindestens ein --angle oder --to")
-    if args.command == "create" and not 3 <= args.duration <= 10:
+    if args.command in ("create", "animate") and not 3 <= args.duration <= 10:
         sys.exit("--duration muss zwischen 3 und 10 Sekunden liegen")
+    if args.command == "animate" and not args.image.startswith(("http://", "https://", "data:")):
+        if not pathlib.Path(args.image).expanduser().exists():
+            sys.exit(f"Bild nicht gefunden: {args.image}")
 
     jobs = plan(args)
     total = len(jobs) * args.runs
@@ -565,13 +600,14 @@ def main():
     for slug, prompt in jobs:
         print(f"\n  [{slug}]\n  {prompt}")
 
-    if args.command == "create":
-        seconds, rate, basis = args.duration, USD_PER_SECOND_CREATE, "Text-to-Video"
+    if args.command in ("create", "animate"):
+        seconds, rate = args.duration, USD_PER_SECOND_CREATE
+        basis = "Text-to-Video" if args.command == "create" else "Bild-to-Video"
     else:
         seconds, rate, basis = source_seconds(args.input) or 8, USD_PER_SECOND_EDIT, "Video-Edit"
     print(f"\n  {total} Modellaufruf(e) × {seconds:.0f} s ({basis}) "
           f"≈ {rate * seconds * total:.2f} USD")
-    if args.command != "create":
+    if args.command not in ("create", "animate"):
         print(f"  Grundlage: gemessene {rate:.3f} USD/s. Kürzere oder kleinere "
               f"Quellclips kosten weniger.")
 
@@ -587,7 +623,15 @@ def main():
     try:
         import fal_client
     except ImportError:
-        sys.exit("fal-client fehlt:  pip install fal-client")
+        # Der häufigste Einrichtungsfehler überhaupt: pip und python3 zeigen auf
+        # verschiedene Interpreter. Deshalb hier ansagen, WELCHER Python gemeint
+        # ist, und den Befehl nennen, der garantiert denselben trifft.
+        sys.exit(
+            f"fal-client fehlt in diesem Python:\n  {sys.executable}\n\n"
+            f"Installier es genau dort:\n  {sys.executable} -m pip install fal-client\n\n"
+            "Ein blankes 'pip install fal-client' kann in einen anderen Python "
+            "installieren — dann bleibt diese Meldung stehen, obwohl pip Erfolg meldet."
+        )
 
     out_dir = pathlib.Path(args.out).expanduser()
     work_dir = out_dir / ".work"
@@ -595,6 +639,11 @@ def main():
 
     if args.command == "create":
         endpoint, source_url, source_local = ENDPOINT_CREATE, None, None
+    elif args.command == "animate":
+        # Standbild statt Video: hochladen, aber kein Kontaktblatt-Vergleich,
+        # weil die Quelle ein Bild ist und kein Clip.
+        endpoint, source_local = ENDPOINT_ANIMATE, None
+        source_url = resolve_image(fal_client, args.image)
     else:
         endpoint = ENDPOINT_EDIT
         source_url, source_local = resolve_source(fal_client, args.input, work_dir)
@@ -617,6 +666,9 @@ def main():
             if args.command == "create":
                 arguments = {"prompt": prompt, "aspect_ratio": args.aspect,
                              "duration": args.duration}
+            elif args.command == "animate":
+                arguments = {"prompt": prompt, "image_url": source_url,
+                             "aspect_ratio": args.aspect, "duration": args.duration}
             else:
                 arguments = {"prompt": prompt, "video_url": source_url}
 

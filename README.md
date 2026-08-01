@@ -164,9 +164,31 @@ Das ist kein Deko-Feature. Es ist die Grundlage dafür, dass Claude in Schritt 3
 jeder Skill wirklich hinschaut, statt „fertig" zu melden, weil eine Datei
 existiert. Braucht `ffmpeg`; fehlt es, läuft alles andere normal weiter.
 
-## Ohne eigenes Material starten
+## Du hast Produktfotos, aber kein Videomaterial?
 
-Wenn du gerade keinen Clip zur Hand hast, erzeugt dir das Skript einen über den
+Das ist der Normalfall, nicht die Ausnahme. Bei drei Kundenordnern, in die wir
+geschaut haben, lagen zusammen über 5.000 Produktbilder — und **null Videos**.
+Alle vier Skills brauchen aber ein Video als Eingabe.
+
+Deshalb macht `animate` aus einem Packshot den Ausgangsclip:
+
+```bash
+python3 scripts/omni.py animate \
+  --image produkte/tiegel.jpg \
+  --prompt "slow push-in on the jar, soft studio light, the product stays still" \
+  --aspect 9:16 --duration 5
+```
+
+Danach laufen `/swap-background`, `/change-angle`, `/transform-object` und
+`/localize` ganz normal auf dem Ergebnis. Aus einem einzigen Produktfoto wird so
+eine ganze Variantenreihe.
+
+Läuft über `google/gemini-omni-flash/image-to-video`, kostet wie Text-to-Video
+rund 0,13 $ pro Sekunde (kein Input-Video, nur ein Bild).
+
+## Ohne jedes Material starten
+
+Wenn du weder Clip noch Foto zur Hand hast, erzeugt dir das Skript einen über den
 Text-to-Video-Endpoint desselben Modells:
 
 ```bash
@@ -323,6 +345,7 @@ python3 scripts/omni.py transform-object --input clip.mp4 --object "the bottle" 
 python3 scripts/omni.py localize         --input clip.mp4 --lang German --keep "the brand name"
 python3 scripts/omni.py raw              --input clip.mp4 --prompt "..."
 python3 scripts/omni.py create           --prompt "..." --aspect 9:16 --duration 8
+python3 scripts/omni.py animate          --image packshot.jpg --prompt "slow push-in"
 ```
 
 | Flag | |
