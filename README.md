@@ -42,27 +42,31 @@ stärkeren Modelle. Darum geht es hier nicht. Es geht um die schmale Handvoll
 Fälle, in denen der In-Place-Edit genau das richtige Werkzeug ist — und dieses
 Repo deckt sie ab.
 
-## Eine Einschränkung, die du vorher kennen musst
+## Zwei Wege zum selben Modell — und der Unterschied ist wichtig
 
-**Google erlaubt aus EWR, Schweiz und UK das Bearbeiten hochgeladener Videos
-nicht.** Nachgemessen mit gültigem Key, korrekter Payload und dem harmlosesten
-denkbaren Prompt — der Aufruf besteht die Strukturprüfung und scheitert erst an
-der Richtlinie. Gemeldet wird das irreführend als *„The prompt contains
-sensitive words"*; am Prompt liegt es nie.
+Das Modell gehört Google. fal.ai ist ein Wiederverkäufer. Beide Wege erreichen
+dasselbe `gemini-omni-flash`. Was sie unterscheidet, ist eine Regionssperre:
 
-Erlaubt ist das Bearbeiten von Clips, **die das Modell selbst erzeugt hat**.
-Daraus ergibt sich der Ablauf:
+| | eigenen Clip bearbeiten | Preis | Voraussetzung |
+|---|---|---|---|
+| **fal.ai** (Standard) | **ja** | ~0,25 $/s | Konto + `pip install fal-client` |
+| **Google direkt** | nein, aus EWR/CH/UK gesperrt | ~0,14 $/s | nur ein Key, keine Pakete |
 
-```
-create  oder  animate   →   swap-background / change-angle /
-(Clip entsteht)             transform-object / localize
-                            (beliebig oft verkettet)
-```
+**Google sperrt das Bearbeiten hochgeladener Videos für Nutzer im EWR, der
+Schweiz und UK.** Nachgemessen mit gültigem Key, korrekter Payload und dem
+harmlosesten denkbaren Prompt: Der Aufruf besteht die Strukturprüfung und
+scheitert erst an der Richtlinie. Gemeldet wird das irreführend als
+*„The prompt contains sensitive words"* — am Prompt liegt es nie.
 
-Jeder Lauf schreibt seine Interaktions-ID in die Manifest-Datei neben dem Video.
-`--input` findet sie dort von selbst und verkettet — **du hantierst nie mit
-IDs**. Was nicht geht: eigenes Drehmaterial hochladen und bearbeiten. Wer das
-aus Europa braucht, kommt um einen Anbieter außerhalb des EWR nicht herum.
+Über fal kommt die Anfrage nicht aus dem EWR, deshalb funktioniert dort genau
+die Sache, um die es hier geht: **einen Clip bearbeiten, den du schon hast.**
+
+Das Skript wählt selbst: Liegt ein `FAL_KEY` in der `.env`, geht es über fal.
+Sonst über Google. `--backend fal` oder `--backend google` erzwingt einen davon.
+
+Wer nur mit selbst erzeugten Clips arbeitet, fährt über Google günstiger — dort
+lassen sich Ergebnisse per Interaktions-ID weiterbearbeiten, ohne etwas
+hochzuladen. Das Skript findet die ID selbst im Manifest neben dem Video.
 
 ## Warum das an Claude hängen?
 
@@ -328,8 +332,8 @@ direkten A/B-Vergleichen zwischen Prompt-Varianten.
 - **Ein Lauf dauert 40 bis 90 Sekunden.** Das Skript zeigt alle 30 Sekunden ein
   Lebenszeichen und bricht nach 10 Minuten mit der Request-ID ab, damit ein
   hängender Lauf nicht stillschweigend ewig steht.
-- **Kein fremdes Drehmaterial aus Europa.** Siehe oben — das ist die härteste
-  Grenze dieses Aufbaus, und sie kommt von Googles Richtlinie, nicht vom Code.
+- **Über Google kein eigenes Drehmaterial aus Europa.** Siehe oben. Über fal
+  geht es — das ist der einzige Grund, warum fal der Standardweg ist.
 
 - **Kein Voiceover.** Der Endpoint bearbeitet keine Stimmen. `/localize` ändert
   ausschließlich Text im Bild.

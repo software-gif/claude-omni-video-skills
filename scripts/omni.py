@@ -40,7 +40,29 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import google_omni as api  # noqa: E402
+import fal_omni      # noqa: E402
+import google_omni   # noqa: E402
+
+
+def pick_backend(preferred=None):
+    """fal, wenn ein FAL_KEY da ist — sonst Google.
+
+    fal ist der Standard, weil nur dieser Weg Clips bearbeiten kann, die du
+    schon hast: Google sperrt das aus EWR, Schweiz und UK. Wer nur erzeugte
+    Clips weiterbearbeitet, fährt mit Google günstiger.
+    """
+    if preferred == "fal":
+        return fal_omni
+    if preferred == "google":
+        return google_omni
+    if fal_omni.load_key():
+        return fal_omni
+    if google_omni.load_key():
+        return google_omni
+    return None
+
+
+api = pick_backend()
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -51,6 +73,10 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Sekunde bei einem Video als Eingabe.
 TOKENS_OUT_PER_SECOND = 5900
 TOKENS_IN_PER_SECOND = 5800
+
+
+def backend_name(mod):
+    return "fal.ai" if mod is fal_omni else "Google direkt"
 
 
 def estimate(seconds, with_video_input):
@@ -397,26 +423,30 @@ def source_seconds(source):
 
 def run_once(command, prompt, label, *, aspect=None, duration=None,
              video_uri=None, image_path=None, interaction_id=None):
-    """Ein Omni-Aufruf. Gibt (Video-Bytes, Interaktion) zurück."""
+    """Ein Omni-Aufruf über das gewählte Backend."""
     task = {"create": "text_to_video", "animate": "image_to_video"}.get(command, "edit")
-    # Google kennt kein Dauer-Feld — die Länge wird im Prompt gesagt. Nur beim
-    # Erzeugen sinnvoll; ein Edit erbt die Länge der Quelle.
-    if duration and task != "edit":
-        prompt = f"{prompt.rstrip().rstrip('.')}. About {duration} seconds long."
-    # Bei task=edit lehnt Google ein gesetztes Seitenverhältnis ab; das Ergebnis
-    # erbt es ohnehin von der Quelle.
-    # Bei Verkettung lehnt Google ein gesetztes video_config.task ab — der
-    # Kontext der Vorgänger-Interaktion sagt schon, worum es geht.
-    chained = bool(interaction_id)
-    result = api.interact(
-        prompt,
-        task=None if chained else task,
-        aspect=None if (chained or task == "edit") else aspect,
-        video_uri=video_uri,
-        image_path=image_path,
-        previous_interaction_id=interaction_id,
-        on_progress=lambda m: print(f"  {label}{m}", flush=True),
-    )
+    progress = lambda m: print(f"  {label}{m}", flush=True)  # noqa: E731
+
+    if api is fal_omni:
+        image_uri = fal_omni.upload_file(image_path, on_progress=progress) if image_path else None
+        result = fal_omni.interact(prompt, task=task, aspect=aspect or "16:9",
+                                   duration=duration or 8, video_uri=video_uri,
+                                   image_uri=image_uri, on_progress=progress)
+    else:
+        # Bei Verkettung lehnt Google ein gesetztes video_config.task ab, und
+        # bei task=edit ein gesetztes Seitenverhältnis.
+        chained = bool(interaction_id)
+        if duration and task != "edit":
+            prompt = f"{prompt.rstrip().rstrip('.')}. About {duration} seconds long."
+        result = google_omni.interact(
+            prompt,
+            task=None if chained else task,
+            aspect=None if (chained or task == "edit") else aspect,
+            video_uri=video_uri,
+            image_path=image_path,
+            previous_interaction_id=interaction_id,
+            on_progress=progress,
+        )
     return api.extract_video(result), result
 
 
@@ -437,6 +467,9 @@ def build_parser():
         sp.add_argument("--runs", type=int, default=1, help="Generierungen pro Variante (Default 1)")
         sp.add_argument("--dry-run", action="store_true", help="Nur den Plan zeigen")
         sp.add_argument("--json", action="store_true", help="Ergebnis als JSON auf stdout")
+        sp.add_argument("--backend", choices=["fal", "google"],
+                        help="Anbieter erzwingen. Ohne Angabe: fal, wenn ein "
+                             "FAL_KEY da ist, sonst Google.")
         return sp
 
     sp = common(sub.add_parser("swap-background", help="Hintergrund tauschen"))
@@ -488,6 +521,14 @@ def main():
     if args.command == "animate" and not pathlib.Path(args.image).expanduser().exists():
         sys.exit(f"Bild nicht gefunden: {args.image}")
 
+    global api
+    api = pick_backend(args.backend)
+    if api is None:
+        sys.exit("Kein Key gefunden. Trag einen davon in .env ein:\n"
+                 "  FAL_KEY=…             (fal.ai/dashboard/keys) — kann eigene Clips bearbeiten\n"
+                 "  GEMINI_API_KEY=…      (aistudio.google.com/apikey) — günstiger, "
+                 "aber im EWR nur für selbst erzeugte Clips")
+
     generating = args.command in ("create", "animate")
     jobs = plan(args)
     total = len(jobs) * args.runs
@@ -499,10 +540,15 @@ def main():
 
     seconds = args.duration if generating else (source_seconds(args.input) or 8)
     basis = {"create": "Text-to-Video", "animate": "Bild-to-Video"}.get(args.command, "Video-Edit")
-    print(f"\n  {total} Aufruf(e) × {seconds:.0f} s ({basis}) "
-          f"≈ {estimate(seconds, not generating) * total:.2f} USD geschätzt")
-    print("  Der tatsächliche Preis steht nach jedem Lauf — Google liefert die "
-          "Tokenzahlen mit.")
+    if api is fal_omni:
+        rough = fal_omni.cost(None, seconds, not generating) * total
+    else:
+        rough = estimate(seconds, not generating) * total
+    print(f"\n  {total} Aufruf(e) × {seconds:.0f} s ({basis}) über {backend_name(api)} "
+          f"≈ {rough:.2f} USD geschätzt")
+    if api is google_omni:
+        print("  Der tatsächliche Preis steht nach jedem Lauf — Google liefert die "
+              "Tokenzahlen mit.")
 
     if args.dry_run:
         print("  Dry run, es wurde nichts ausgegeben.")
@@ -519,13 +565,12 @@ def main():
 
     interaction_id = video_uri = source_local = None
     if not generating:
-        interaction_id, source_local = resolve_source(args.input)
-        if interaction_id:
-            print(f"\n  Quelle stammt aus einem früheren Lauf — wird verkettet "
-                  f"(erlaubt im EWR).")
+        chain_id, source_local = resolve_source(args.input)
+        if api is google_omni and chain_id:
+            interaction_id = chain_id
+            print("\n  Quelle stammt aus einem früheren Lauf — wird verkettet "
+                  "(der einzige Weg, den Google im EWR erlaubt).")
         else:
-            print(f"\n  Kein Manifest neben {pathlib.Path(args.input).name}: "
-                  f"Clip wird hochgeladen.")
             try:
                 video_uri = api.upload_file(args.input, on_progress=lambda m: print("  " + m))
             except api.OmniError as exc:
@@ -566,10 +611,12 @@ def main():
             target = claim_version(out_dir, stem)
             target.write_bytes(blob)
             written.append(target)
-            price = api.cost(result)
+            price = (fal_omni.cost(result, seconds, not generating)
+                     if api is fal_omni else google_omni.cost(result))
             spent += price
+            marker = "" if api is google_omni else "~"
             print(f"  {label}→ {target}  ({len(blob) / 1_048_576:.1f} MB, "
-                  f"{result.get('_seconds', 0):.0f}s, {price:.3f} USD)")
+                  f"{result.get('_seconds', 0):.0f}s, {marker}{price:.3f} USD)")
 
             sheet = contact_sheet(source_local, target,
                                   out_dir / f"{target.stem}-compare.jpg",
@@ -580,7 +627,7 @@ def main():
             usage = result.get("usage") or {}
             entry = {
                 "command": args.command, "variant": slug, "prompt": prompt,
-                "model": api.MODEL,
+                "backend": backend_name(api), "model": api.MODEL,
                 "interaction_id": result.get("id"),
                 "chained_from": interaction_id,
                 "source": str(source_local) if source_local else None,
@@ -605,8 +652,9 @@ def main():
         (out_dir / f"{base}-batch.json").write_text(
             json.dumps(manifest, indent=2, ensure_ascii=False))
 
+    wording = "tatsächlich abgerechnet" if api is google_omni else "geschätzt"
     print(f"\n  {len(written)} von {total} Aufruf(en) erfolgreich, "
-          f"{spent:.2f} USD tatsächlich abgerechnet.")
+          f"{spent:.2f} USD {wording}.")
     if written:
         print(f"  Weiterbearbeiten: --input {written[0]}")
 

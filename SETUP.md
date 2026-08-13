@@ -16,10 +16,16 @@ git clone https://github.com/software-gif/claude-omni-video-skills.git
 cd claude-omni-video-skills
 ```
 
-**Keine Pakete zu installieren.** Die Skripte laufen mit der
-Python-Standardbibliothek. Damit entfällt auch die häufigste Stolperfalle
-überhaupt: dass `pip` und `python3` auf verschiedene Interpreter zeigen und
-Installationen ins Leere laufen.
+**Für den Google-Weg keine Pakete nötig** — die Skripte laufen mit der
+Python-Standardbibliothek. Nur der fal-Weg braucht ein Paket:
+
+```bash
+python3 -m pip install fal-client
+```
+
+`python3 -m pip` statt nur `pip` ist hier kein Pedanterie: Auf vielen Macs
+liegen zwei Pythons, und ein blankes `pip install` landet womöglich im falschen.
+Dann meldet pip Erfolg und das Skript trotzdem, das Paket fehle.
 
 Optional, aber sehr empfohlen:
 
@@ -31,24 +37,34 @@ Ohne ffmpeg läuft alles, aber es entstehen keine Kontaktblätter — und dann k
 Claude das Ergebnis nicht ansehen, sondern nur melden, dass eine Datei da ist.
 Das ist der halbe Nutzen.
 
-## 3 · Google-Key eintragen
+## 3 · Einen Key eintragen
 
-Der Key kommt von [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-Dort entstehen auch die Kosten: rund **0,13 $ pro Sekunde** erzeugtem Video, ein
-3-Sekunden-Clip also etwa 0,40 $.
+Du brauchst **einen** von beiden. Welchen, hängt daran, ob du eigenes
+Drehmaterial bearbeiten willst:
+
+| | fal.ai | Google direkt |
+|---|---|---|
+| Eigenen Clip bearbeiten | **ja** | nein (EWR/CH/UK gesperrt) |
+| Preis | ~0,25 $/s | ~0,14 $/s |
+| Key von | [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| Zusätzlich nötig | `python3 -m pip install fal-client` | nichts |
 
 ```bash
 cp .env.example .env
 ```
 
-Dann `.env` öffnen und eintragen:
+Dann `.env` öffnen und **eine** Zeile ausfüllen:
 
 ```
+FAL_KEY=dein-key-hier
+# oder
 GEMINI_API_KEY=dein-key-hier
 ```
 
+Sind beide da, gewinnt fal — weil nur dieser Weg eigenes Material bearbeiten
+kann. `--backend google` erzwingt trotzdem den günstigeren Weg.
+
 Die `.env` ist über `.gitignore` ausgeschlossen und landet nicht im Repo.
-Alternativ geht auch `export GEMINI_API_KEY=…` in der Shell.
 
 ## 4 · Markenkontext ausfüllen
 
@@ -77,36 +93,35 @@ tun ist.
 
 ## 6 · Erster Lauf
 
-**Zuerst brauchst du einen Ausgangsclip vom Modell selbst.** Warum, steht im
-README: Google lässt aus EWR, Schweiz und UK keine hochgeladenen Videos
-bearbeiten, wohl aber solche, die das Modell erzeugt hat.
+**Mit fal-Key:** nimm einfach deinen Clip.
 
-Aus einem Produktfoto:
+```bash
+python3 scripts/omni.py swap-background \
+  --input mein-clip.mp4 \
+  --to "a warm home kitchen with oak worktops and low morning light" \
+  --out ./out
+```
+
+**Mit Google-Key** brauchst du zuerst einen Ausgangsclip vom Modell selbst —
+hochgeladene Videos sind aus EWR, Schweiz und UK gesperrt. Aus einem
+Produktfoto:
 
 ```bash
 python3 scripts/omni.py animate \
-  --image produkte/tiegel.jpg \
-  --prompt "slow push-in on the jar, soft studio light, the product stays still" \
+  --image produkte/pfanne.png \
+  --prompt "slow push-in on the pan, soft studio light, the product stays still" \
   --aspect 9:16 --duration 5 --out ./out
 ```
 
-Oder ganz ohne Material:
+Oder ganz ohne Material mit `create`. Danach laufen die vier Skills auf dem
+Ergebnis; die Verkettung passiert von selbst, `--input` findet die
+Interaktions-ID im Manifest neben dem Video.
 
-```bash
-python3 scripts/omni.py create \
-  --prompt "A matte black insulated bottle on a pale wooden table, soft studio light." \
-  --duration 5 --out ./out
-```
-
-Danach Claude Code im Ordner starten und eine der vier Skills auf das Ergebnis
-loslassen:
+In beiden Fällen dann Claude Code im Ordner starten:
 
 ```
 /swap-background
 ```
-
-Die Verkettung passiert von selbst — `--input` findet die Interaktions-ID im
-Manifest neben dem Video.
 
 Vorher prüfen, ohne etwas auszugeben, geht immer mit `--dry-run`.
 
@@ -114,11 +129,23 @@ Vorher prüfen, ohne etwas auszugeben, geht immer mit `--dry-run`.
 
 ## Wenn etwas klemmt
 
-### `GEMINI_API_KEY fehlt`
+### `Kein Key gefunden`
 
 Die `.env` liegt nicht neben dem Repo, oder die Zeile heißt anders. Das Skript
-sucht `GEMINI_API_KEY=` in `.env` im Repo-Wurzelverzeichnis und im aktuellen
-Ordner, danach in den Umgebungsvariablen.
+sucht `FAL_KEY=` und `GEMINI_API_KEY=` in `.env` im Repo-Wurzelverzeichnis und
+im aktuellen Ordner, danach in den Umgebungsvariablen.
+
+### `fal-client fehlt in diesem Python`
+
+Nur beim fal-Weg. Zwei Pythons auf dem Rechner, und pip hat in den falschen
+installiert. Die Meldung nennt den Pfad des Interpreters, der gerade läuft,
+samt passendem Befehl — den einfach kopieren.
+
+### `403 Forbidden` beim Upload (fal)
+
+Fast immer aufgebrauchtes Guthaben. Das Skript zeigt den Klartext von fal mit
+an, meist `User is locked. Reason: Exhausted balance.` Aufladen unter
+[fal.ai/dashboard/billing](https://fal.ai/dashboard/billing).
 
 ### `Key wird abgelehnt (403)`
 

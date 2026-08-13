@@ -11,12 +11,14 @@ Zielsprachen und die Tabus. Frag nicht nach etwas, das dort schon steht.
 
 ## Bevor du Geld ausgibst
 
-Ein Lauf kostet rund **0,13 bis 0,14 $ pro Sekunde** Cliplänge, und **jede
-Variante ist ein eigener Aufruf** — vier Märkte aus einem 8-s-Clip sind ~4,50 $.
-Den exakten Preis nennt das Skript nach jedem Lauf; Google liefert die
-Tokenzahlen mit. Bei mehr als
-etwa drei Varianten erst `--dry-run` zeigen und eine Bestätigung abwarten. Nie
-ungefragt einen großen Batch starten.
+**Jede Variante ist ein eigener Aufruf.** Über fal rund **0,25 $ pro Sekunde**
+Cliplänge — vier Märkte aus einem 8-s-Clip sind also ~8 $. Über Google etwa
+0,14 $/s, und dort nennt das Skript nach dem Lauf den exakten Preis, weil Google
+die Tokenzahlen mitliefert; fal tut das nicht, dort bleibt es eine Schätzung.
+
+Bei mehr als etwa drei Varianten erst `--dry-run` zeigen und eine Bestätigung
+abwarten. **Nie ungefragt einen Lauf starten, der Geld kostet** — auch keinen
+einzelnen zum Ausprobieren.
 
 Wenn der Quellclip länger ist als nötig: vorher kürzen vorschlagen. Bezahlt
 werden Input und Ausgabe, beides skaliert mit der Länge.
@@ -54,8 +56,13 @@ Nacht" liefert zuverlässig eine von beiden. Zwei Aufrufe hintereinander.
 
 ## Woher der Clip kommen muss
 
-Google lässt aus dem EWR keine **hochgeladenen** Videos bearbeiten. Die vier
-Skills arbeiten deshalb auf Ergebnissen von `create` oder `animate`; die
+Hängt am Anbieter, und das Skript sagt beim Start, welcher greift.
+
+**Über fal** geht jeder Clip — hochladen und los. Das ist der Grund, warum fal
+der Standardweg ist.
+
+**Über Google** sind hochgeladene Videos aus EWR, Schweiz und UK gesperrt. Dann
+arbeiten die vier Skills auf Ergebnissen von `create` oder `animate`; die
 Verkettung läuft automatisch über das Manifest neben dem Video. Bringt jemand
-eigenes Drehmaterial mit, sag ehrlich, dass dieser Weg das nicht kann — und
-biete `animate` an, falls ein Produktfoto vorliegt.
+eigenes Drehmaterial mit und hat nur einen Google-Key, sag ehrlich, dass dieser
+Weg das nicht kann — und biete `animate` an, falls ein Produktfoto vorliegt.

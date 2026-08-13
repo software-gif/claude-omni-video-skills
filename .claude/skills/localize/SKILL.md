@@ -12,8 +12,8 @@ of the original.
 This only works because Omni keeps text inside the frame legible through an
 edit. It touches **on-screen text only** — the spoken voiceover stays as it is.
 
-Runs on `gemini-omni-flash-preview` through the Google Gemini API, via
-`scripts/omni.py`.
+Runs on `gemini-omni-flash` via `scripts/omni.py` — through fal.ai when a
+`FAL_KEY` is present, otherwise directly on Google.
 
 ## Step 0 — Read the brand file
 
@@ -141,8 +141,9 @@ clean. See `examples/failure-invented-branding.jpg`.
   "BLEIB SMART" on the first attempt, in the same font, weight, colour and
   position, with nothing else in the frame touched. Treat that as the good
   case, not the guaranteed one.
-- **The source clip must come from `create` or `animate`.** Google does not
-  allow editing *uploaded* videos from the EEA, Switzerland or the UK, only
-  model-generated ones. `--input` chains automatically via the manifest next to
-  the video, so this is invisible in normal use — but if someone brings their own
-  footage, say plainly that this route cannot edit it.
+- **Where the source clip may come from depends on the backend.** Over fal,
+  any clip works — upload it and go. Over Google, editing *uploaded* video is
+  blocked for the EEA, Switzerland and the UK; only model-generated clips can
+  be edited, and `--input` chains those automatically via the manifest next to
+  the video. If someone brings their own footage and only has a Google key,
+  say plainly that this route cannot edit it.

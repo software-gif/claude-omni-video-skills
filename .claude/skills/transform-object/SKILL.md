@@ -9,8 +9,8 @@ Same footage, new finish. Point at something in a clip you already have,
 describe the swap, and Omni restyles it in place — no reshoot, no physical
 sample needed just to see how a colourway reads on screen.
 
-Runs on `gemini-omni-flash-preview` through the Google Gemini API, via
-`scripts/omni.py`.
+Runs on `gemini-omni-flash` via `scripts/omni.py` — through fal.ai when a
+`FAL_KEY` is present, otherwise directly on Google.
 
 ## Step 0 — Read the brand file
 
@@ -134,8 +134,9 @@ mentioning a logo out of nowhere — see the next point.
   fine label text on a small object will not hold up.
 - The edit endpoint is text-only: you cannot supply a swatch or a reference
   photo of the exact material. Describe it instead.
-- **The source clip must come from `create` or `animate`.** Google does not
-  allow editing *uploaded* videos from the EEA, Switzerland or the UK, only
-  model-generated ones. `--input` chains automatically via the manifest next to
-  the video, so this is invisible in normal use — but if someone brings their own
-  footage, say plainly that this route cannot edit it.
+- **Where the source clip may come from depends on the backend.** Over fal,
+  any clip works — upload it and go. Over Google, editing *uploaded* video is
+  blocked for the EEA, Switzerland and the UK; only model-generated clips can
+  be edited, and `--input` chains those automatically via the manifest next to
+  the video. If someone brings their own footage and only has a Google key,
+  say plainly that this route cannot edit it.
