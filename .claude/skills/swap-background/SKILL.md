@@ -9,8 +9,8 @@ One shoot becomes a set of locations. Feed in a clip you already have, describe
 the new setting, and Gemini Omni repaints the background in place — subject,
 motion and framing stay where they were.
 
-Runs on `gemini-omni-flash` via `scripts/omni.py` — through fal.ai when a
-`FAL_KEY` is present, otherwise directly on Google.
+Runs on `gemini-omni-flash-preview` through the Google Gemini API, via
+`scripts/omni.py`.
 
 ## Step 0 — Read the brand file
 
@@ -144,9 +144,8 @@ and keep it to one or two sentences.
   for a landscape source, 720×1280 for a portrait one. Omni does not upscale.
 - The edit endpoint takes **text only** — you cannot hand it a reference photo
   of the exact location. For that you need a reference-based model.
-- **Where the source clip may come from depends on the backend.** Over fal,
-  any clip works — upload it and go. Over Google, editing *uploaded* video is
-  blocked for the EEA, Switzerland and the UK; only model-generated clips can
-  be edited, and `--input` chains those automatically via the manifest next to
-  the video. If someone brings their own footage and only has a Google key,
-  say plainly that this route cannot edit it.
+- **The source clip must come from `create` or `animate`.** Google does not
+  allow editing *uploaded* videos from the EEA, Switzerland or the UK, only
+  model-generated ones. `--input` chains automatically via the manifest next to
+  the video, so this is invisible in normal use — but if someone brings their own
+  footage, say plainly that this route cannot edit it.

@@ -40,11 +40,34 @@ das Modell hat die noch nie gesehen.
 | Gusseisenbräter 28 cm | `the cast iron braiser with its lid` | rund, zwei kurze Seitengriffe, separater Deckel |
 | Griffschutz | `the black silicone handle sleeve` | Zubehör, selten Hauptmotiv |
 
-**Wichtig für alle Läufe:** Die STUR-Wortmarke ist schwarz auf schwarz in den
-Griff geprägt und sehr klein. Bei 720p überlebt sie einen Edit nicht zuverlässig
-— nicht darauf bauen, dass sie lesbar bleibt, und sie im Ergebnis auch nicht als
-Qualitätskriterium heranziehen. Wer Markenpräsenz im Clip braucht, legt sie als
-Text ins Bild statt sie vom Produkt zu erwarten.
+**Wichtig für alle Läufe:** Die STUR-Wortmarke sitzt als schwarze Prägung am
+Pfannenrand und auf dem Griff. In den Shopfotos ist sie lesbar, im 720p-Video
+wird sie es meist nicht sein — nicht darauf bauen, dass sie einen Edit übersteht,
+und sie im Ergebnis auch nicht als Qualitätskriterium heranziehen.
+
+### Wo die Produktbilder liegen
+
+Heruntergeladen nach `brand/products/` (36 Produkte im Shop, 12 Kernprodukte
+gesichert, je zwei Ansichten). Der Ordner steht in `.gitignore` — es ist STURs
+Bildmaterial und gehört nicht in ein öffentliches Repo.
+
+**Die zwei Ansichten sind sehr unterschiedlich, und das entscheidet, welche du
+nimmst:**
+
+| | `…-1` | `…-2` |
+|---|---|---|
+| Was | Freisteller mit Alphakanal | echtes Foto mit Szene |
+| Auflösung | bis 5000 × 5000 | 1500–2400 px |
+| Für `animate` | **unbrauchbar** — transparenter Hintergrund, das Modell hat nichts zum Weiterdenken | **das Richtige** |
+
+Die Zweitansichten sind Editorial-Foodfotos von oben: Spiegelei in der 20er,
+Paprika in der 24er, Brokkoli in der 28er, Bratkartoffeln in der 32er, Steak auf
+der Grillpfanne, Ofentomaten im Bräter, Suppe unter dem Deckel, Pizza auf der
+Plancha. Heller Marmor oder Leinen, weiches Oberlicht. Genau die Art Bild, aus
+der `animate` einen brauchbaren Ausgangsclip macht.
+
+Wenn doch ein Freisteller gebraucht wird, vorher auf eine Fläche legen — sonst
+interpretiert das Modell die Transparenz als schwarzen Hintergrund.
 
 ## 3 · Colourways und Finishes
 
@@ -113,12 +136,8 @@ aber deutsch.
 
 ---
 
-## Wo das Bildmaterial liegt
+## Rechtliches
 
-STUR-Packshots stehen öffentlich im Shop, 2500 × 2500 px auf hellem Creme-Grund,
-zum Beispiel `sturcookware.de/cdn/shop/files/24cm.png`. Die eignen sich direkt
-als Eingabe für `animate`, um daraus einen Ausgangsclip zu machen.
-
-**Rechtlicher Hinweis:** Für internes Testen unproblematisch. Was am Ende
-öffentlich gezeigt wird, sollte mit STUR abgestimmt sein — es ist deren
-Bildmaterial und deren Marke.
+Für internes Testen unproblematisch. Was am Ende öffentlich gezeigt wird, sollte
+mit STUR abgestimmt sein — es ist deren Bildmaterial und deren Marke. Deshalb
+liegt `brand/products/` auch nicht im Repo.
